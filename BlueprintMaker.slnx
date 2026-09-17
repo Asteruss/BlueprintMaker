@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="BlueprintMaker.Core.Geometry/BlueprintMaker.Core.Geometry.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="BlueprintMaker.Core.Geometry.Tests/BlueprintMaker.Core.Geometry.Tests.csproj" />
+  </Folder>
+</Solution>

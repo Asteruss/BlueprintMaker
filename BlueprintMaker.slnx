@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="BlueprintMaker.Core.Geometry/BlueprintMaker.Core.Geometry.csproj" />
+    <Project Path="BlueprintMaker.Domain.Models/BlueprintMaker.Domain.Models.csproj" Id="65893956-3577-4e86-af44-ded2f74edbbc" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="BlueprintMaker.Core.Geometry.Tests/BlueprintMaker.Core.Geometry.Tests.csproj" />

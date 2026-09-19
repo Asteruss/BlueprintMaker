@@ -5,7 +5,7 @@ namespace BlueprintMaker.Domain.Models.Elements;
 
 
 
-public sealed class Impost : WindowNodeBase
+public sealed class Impost : WindowNodeBase, IMaterializable
 {
     public double Width { get; private set; }
 
@@ -21,7 +21,7 @@ public sealed class Impost : WindowNodeBase
         return Width == 0 ? GeometryConstants.DisplayWidth : Width;
     }
 
-    internal void Materialize(double width)
+    public void Materialize(double width)
     {
         if (width <= 0) throw new ArgumentException("Ширина должна быть больше нуля.");
         Width = width;

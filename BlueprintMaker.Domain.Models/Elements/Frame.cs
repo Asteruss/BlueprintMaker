@@ -10,7 +10,7 @@ namespace BlueprintMaker.Domain.Models.Elements;
 /// <summary>
 /// Рама окна. Внешний контур. Единственный элемент, хранящий локальную геометрию напрямую.
 /// </summary>
-public sealed class Frame : WindowNodeBase
+public sealed class Frame : WindowNodeBase, IMaterializable
 {
     public double Width { get; private set; }
     public LightSpace InnerSpace { get; }
@@ -18,7 +18,7 @@ public sealed class Frame : WindowNodeBase
     internal Frame(Guid id, Contour contour)
         : base(id, localContour: contour, rule: null)
     {
-        Width = 0; // Проволока не имеет ширины
+        Width = 0;
 
         // Автоматически создаем световое пространство с дефолтным отступом, чтобы его было видно на экране еще до материализации
         InnerSpace = new LightSpace(Guid.NewGuid(), this);
@@ -31,17 +31,11 @@ public sealed class Frame : WindowNodeBase
         return Width == 0 ? GeometryConstants.DisplayWidth : Width;
     }
 
-    /// <summary>
-    /// Превращает скелет в физический брус, задавая ширину
-    /// </summary>
+
     public void Materialize(double frameWidth)
     {
-        if (frameWidth <= 0) throw new ArgumentException("Ширина должна быть больше нуля.");
-
+        if (frameWidth <= 0) throw new ArgumentException("Ширина должна быть больше нуля");
         Width = frameWidth;
-
-        // Просим световое пространство обновить отступ до реальной ширины бруса
-        //InnerSpace.UpdateFrameWidth(frameWidth);
     }
 
     /// <summary>

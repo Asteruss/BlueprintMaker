@@ -173,7 +173,6 @@ public static class ContourMath
 
     private static IEnumerable<Point> IntersectArc(ArcParameters arc, AxisOrientation orientation, double coordinate)
     {
-        // Уравнение окружности: (x - cx)^2 + (y - cy)^2 = r^2
         double fixedDelta = orientation == AxisOrientation.Vertical
             ? coordinate - arc.Center.X
             : coordinate - arc.Center.Y;
@@ -189,16 +188,20 @@ public static class ContourMath
                 ? new Point(coordinate, arc.Center.Y + sign * offset)
                 : new Point(arc.Center.X + sign * offset, coordinate);
 
-            // Проверяем, лежит ли точка в секторе дуги (упрощенная проверка по углу)
+            // Проверяем, лежит ли точка в секторе дуги
             double angle = Math.Atan2(candidate.Y - arc.Center.Y, candidate.X - arc.Center.X);
-            double startAngle = arc.StartAngle;
-            double endAngle = arc.StartAngle + arc.SweepAngle;
 
-            bool withinSweep = arc.SweepAngle > 0
-                ? (angle >= startAngle && angle <= endAngle)
-                : (angle <= startAngle && angle >= endAngle);
-
-            if (withinSweep) yield return candidate;
+            if (IsAngleWithinSweep(arc.StartAngle, arc.SweepAngle, angle))
+                yield return candidate;
         }
+    }
+
+    private static bool IsAngleWithinSweep(double startAngle, double sweep, double angle)
+    {
+        double t = angle - startAngle;
+        while (t <= -Math.PI) t += 2 * Math.PI;
+        while (t > Math.PI) t -= 2 * Math.PI;
+
+        return sweep >= 0 ? (t >= 0 && t <= sweep) : (t <= 0 && t >= sweep);
     }
 }

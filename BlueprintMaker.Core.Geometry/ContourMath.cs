@@ -153,7 +153,22 @@ public static class ContourMath
             }
         }
 
-        return results;
+        // Фильтрация дубликатов
+        var finalResults = new List<Point>();
+        foreach (var p in results)
+        {
+            bool isDuplicate = false;
+            foreach (var f in finalResults)
+            {
+                if (p.DistanceTo(f) < 0.001) // Точки почти совпадают
+                {
+                    isDuplicate = true;
+                    break;
+                }
+            }
+            if (!isDuplicate) finalResults.Add(p);
+        }
+        return finalResults;
     }
 
     private static Point? IntersectStraightSegment(Point from, Point to, AxisOrientation orientation, double coordinate)

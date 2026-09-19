@@ -8,25 +8,12 @@ namespace BlueprintMaker.Domain.Models.Rules;
 /// </summary>
 public sealed class InsetRule : IDerivationRule
 {
-    public double Width { get; }
-
-    public InsetRule(double width)
-    {
-        if (width <= 0)
-            throw new ArgumentException("Ширина бруса должна быть больше нуля.", nameof(width));
-
-        Width = width;
-    }
-
     public Contour Resolve(IWindowNode parent)
     {
-        // Получаем контур родителя
+        double insetWidth = parent.GetPhysicalWidth();
+
         var parentContour = parent.GetContour();
-
-        // Делаем отступ внутрь на ширину бруса
-        var insetVertices = ContourMath.Inset(parentContour.Vertices, Width);
-
-        // Возвращаем новый замкнутый контур
+        var insetVertices = ContourMath.Inset(parentContour.Vertices, insetWidth);
         return Contour.CreateClosed(insetVertices);
     }
 }

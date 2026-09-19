@@ -21,8 +21,14 @@ public sealed class Frame : WindowNodeBase
         Width = 0; // Проволока не имеет ширины
 
         // Автоматически создаем световое пространство с дефолтным отступом, чтобы его было видно на экране еще до материализации
-        InnerSpace = new LightSpace(Guid.NewGuid(), this, 1.0);
+        InnerSpace = new LightSpace(Guid.NewGuid(), this);
         AddChildInternal(InnerSpace);
+    }
+
+    public override double GetPhysicalWidth()
+    {
+        // Если скелет (ширина 0), возвращаем дефолт для UI. Иначе реальную ширину
+        return Width == 0 ? GeometryConstants.DisplayWidth : Width;
     }
 
     /// <summary>
@@ -35,7 +41,7 @@ public sealed class Frame : WindowNodeBase
         Width = frameWidth;
 
         // Просим световое пространство обновить отступ до реальной ширины бруса
-        InnerSpace.UpdateFrameWidth(frameWidth);
+        //InnerSpace.UpdateFrameWidth(frameWidth);
     }
 
     /// <summary>

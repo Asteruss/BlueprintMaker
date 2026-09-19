@@ -17,6 +17,7 @@ public abstract class WindowNodeBase : IWindowNode
     private Contour? _localContour;
 
     private IDerivationRule? _rule;
+    public virtual double GetPhysicalWidth() => 0;
 
     protected WindowNodeBase(Guid id, Contour? localContour, IDerivationRule? rule)
     {
@@ -47,7 +48,7 @@ public abstract class WindowNodeBase : IWindowNode
     }
 
 
-    protected void AddChildInternal(IWindowNode child)
+    public void AddChildInternal(IWindowNode child)
     {
         if (child.Parent != null)
             throw new InvalidOperationException("Элемент уже имеет родителя.");
@@ -56,7 +57,7 @@ public abstract class WindowNodeBase : IWindowNode
         ((WindowNodeBase)child).Parent = this;
     }
 
-    protected void RemoveChildInternal(IWindowNode child)
+    public void RemoveChildInternal(IWindowNode child)
     {
         _children.Remove(child);
         ((WindowNodeBase)child).Parent = null;

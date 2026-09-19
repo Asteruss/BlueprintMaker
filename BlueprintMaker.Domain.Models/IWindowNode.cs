@@ -21,4 +21,9 @@ public interface IWindowNode
     /// Если есть правило — вычисляет по нему. Если нет — возвращает локальную форму.
     /// </summary>
     Contour GetContour();
+    /// <summary>
+    /// Возвращает физическую ширину бруса
+    /// У пустот (LightSpace) возвращает 0. У рам/импостов возвращает реальную ширину или константу DisplayWidth, если еще не материализованы
+    /// </summary>
+    double GetPhysicalWidth();
 }

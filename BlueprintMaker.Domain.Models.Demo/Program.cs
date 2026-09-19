@@ -8,6 +8,12 @@ class Program
 {
     static void Main()
     {
+        ImpostDemo();
+
+        Console.ReadKey();
+    }
+    static void FrameDemo()
+    {
         var vertices = new ContourVertex[]
         {
             new(new Point(0, 0)),
@@ -44,7 +50,6 @@ class Program
         Console.WriteLine("Угол рамы сдвинут на (150, 200).");
         PrintBounds("Световое пространство", lightSpace.GetContour());
 
-        Console.ReadKey();
     }
 
     static void PrintBounds(string name, Contour contour)
@@ -52,5 +57,42 @@ class Program
         var bounds = contour.BoundingBox;
         Console.WriteLine($"{name}: Ширина={bounds.Width:F2}, Высота={bounds.Height:F2} " +
                           $"(от X={bounds.MinX:F2}, Y={bounds.MinY:F2})");
+    }
+
+
+    static void ImpostDemo()
+    {
+        // Создаем скелет рамы 100x100
+        var vertices = new ContourVertex[]
+        {
+            new(new Point(0, 0)), new(new Point(100, 0)),
+            new(new Point(100, 100)), new(new Point(0, 100))
+        };
+        Frame frame = Frame.Create(Contour.CreateClosed(vertices));
+
+        Console.WriteLine("СОЗДАН СКЕЛЕТ");
+        PrintTree(frame, "  ");
+
+        // Материализуем раму (ширина 10)
+        frame.Materialize(10);
+        Console.WriteLine("\nРАМА МАТЕРИАЛИЗОВАНА (Ширина 10)");
+        PrintTree(frame, "  ");
+
+        // Вставляем 1 импост
+        frame.InnerSpace.InsertImpost(AxisOrientation.Vertical);
+        Console.WriteLine("\nВСТАВЛЕН ВЕРТИКАЛЬНЫЙ ИМПОСТ");
+        PrintTree(frame, "  ");
+    }
+
+    static void PrintTree(IWindowNode node, string indent)
+    {
+        var bounds = node.GetContour().BoundingBox;
+        var width = node.GetPhysicalWidth();
+        Console.WriteLine($"{indent}{node.GetType().Name} (Ширина:{width}) | Габариты: {bounds.Width:F1}x{bounds.Height:F1} (X:{bounds.MinX:F1}, Y:{bounds.MinY:F1})");
+
+        foreach (var child in node.Children)
+        {
+            PrintTree(child, indent + "  ");
+        }
     }
 }

@@ -219,4 +219,70 @@ public static class ContourMath
 
         return sweep >= 0 ? (t >= 0 && t <= sweep) : (t <= 0 && t >= sweep);
     }
+
+    private static Hit FindHit(IReadOnlyList<ContourVertex> vertices, Point target)
+    {
+        for (int i = 0; i < vertices.Count; i++)
+        {
+            var curr = vertices[i];
+            var next = vertices[(i + 1) % vertices.Count];
+
+            // Если точка идеально совпадает с вершиной
+            if (curr.Position == target)
+                return new Hit { SegmentIndex = i, T = 0.0, Position = target };
+
+            // Иначе ищем проекцию точки на сегмент (прямую или дугу)
+            var proj = SegmentProjection.Project(curr.Position, next.Position, curr.Bulge, target);
+            if (proj.Distance < 0.01)
+            {
+                return new Hit { SegmentIndex = i, T = proj.Parameter, Position = target };
+            }
+        }
+        throw new InvalidOperationException("Точка импоста не найдена на границе родителя!");
+    }
+
+
+    /// <summary>
+    /// Разрезает замкнутый контур открытой линией (импостом) на две половины
+    /// </summary>
+    public static (Contour first, Contour second) SliceContour(Contour parent, Contour cutter)
+    {
+        if (!parent.IsClosed) throw new ArgumentException("Родитель должен быть замкнут.");
+        if (cutter.IsClosed || cutter.Vertices.Count < 2) throw new ArgumentException("Резак должен быть открытой линией.");
+
+        Point start = cutter.Vertices[0].Position;
+        Point end = cutter.Vertices[1].Position;
+
+        var hitA = FindHit(parent.Vertices, start);
+        var hitB = FindHit(parent.Vertices, end);
+
+        // Упорядочиваем попадания, чтобы hitA шел первым по обходу контура
+        if (hitA.SegmentIndex > hitB.SegmentIndex ||
+           (hitA.SegmentIndex == hitB.SegmentIndex && hitA.T > hitB.T))
+        {
+            (hitA, hitB) = (hitB, hitA);
+            (start, end) = (end, start);
+        }
+
+        // Собираем первую половину: от hitA до hitB по родительским вершинам
+        var path1 = new List<ContourVertex> { new ContourVertex(start, 0) };
+        for (int i = hitA.SegmentIndex + 1; i <= hitB.SegmentIndex; i++)
+        {
+            path1.Add(parent.Vertices[i % parent.Vertices.Count]);
+        }
+        path1.Add(new ContourVertex(end, 0));
+        var first = Contour.CreateClosed(path1); // CreateClosed автоматически замкнет конец на начало (линией импоста)
+
+        // Собираем вторую половину: от hitB до hitA по оставшимся вершинам
+        var path2 = new List<ContourVertex> { new ContourVertex(end, 0) };
+        for (int i = hitB.SegmentIndex + 1; i < parent.Vertices.Count + hitA.SegmentIndex + 1; i++)
+        {
+            path2.Add(parent.Vertices[i % parent.Vertices.Count]);
+        }
+        path2.Add(new ContourVertex(start, 0));
+        var second = Contour.CreateClosed(path2);
+
+        return (first, second);
+    }
+
 }

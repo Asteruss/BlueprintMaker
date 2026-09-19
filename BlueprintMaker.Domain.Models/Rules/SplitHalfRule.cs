@@ -18,7 +18,13 @@ public sealed class SplitHalfRule : IDerivationRule
 
     public Contour Resolve(IWindowNode parent)
     {
-        return parent.GetContour();
+        var parentContour = parent.GetContour();
+        var impostContour = _impost.GetContour();
+
+        // Режем контур родителя линией импоста
+        var (first, second) = ContourMath.SliceContour(parentContour, impostContour);
+
+        return _side == SplitSide.First ? first : second;
     }
 }
 

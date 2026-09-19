@@ -5,5 +5,6 @@
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="BlueprintMaker.Core.Geometry.Tests/BlueprintMaker.Core.Geometry.Tests.csproj" />
+    <Project Path="BlueprintMaker.Domain.Models.Demo/BlueprintMaker.Domain.Models.Demo.csproj" Id="8b86f1a3-301d-48e2-a2f8-b2261c5143fd" />
   </Folder>
 </Solution>

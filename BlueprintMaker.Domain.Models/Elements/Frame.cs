@@ -28,7 +28,7 @@ public sealed class Frame : WindowNodeBase
     /// <summary>
     /// Превращает скелет в физический брус, задавая ширину
     /// </summary>
-    internal void Materialize(double frameWidth)
+    public void Materialize(double frameWidth)
     {
         if (frameWidth <= 0) throw new ArgumentException("Ширина должна быть больше нуля.");
 
@@ -41,7 +41,7 @@ public sealed class Frame : WindowNodeBase
     /// <summary>
     /// Обновление внешней формы рамы (когда пользователь тянет за углы)
     /// </summary>
-    internal void UpdateContour(Contour newContour)
+    public void UpdateContour(Contour newContour)
     {
         UpdateLocalContour(newContour);
     }

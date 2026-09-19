@@ -1,5 +1,6 @@
-﻿using BlueprintMaker.Domain.Models.Rules;
-using BlueprintMaker.Core.Geometry;
+﻿using BlueprintMaker.Core.Geometry;
+using BlueprintMaker.Domain.Models.Rules;
+using System.Data;
 
 namespace BlueprintMaker.Domain.Models.Elements;
 
@@ -25,5 +26,12 @@ public sealed class Impost : WindowNodeBase, IMaterializable
     {
         if (width <= 0) throw new ArgumentException("Ширина должна быть больше нуля.");
         Width = width;
+    }
+
+    public void UpdatePosition(double newRelativePosition)
+    {
+        // Пересоздаем правило с новой позицией
+        var orientation = (Rule as ImpostPlacementRule)?.Orientation ?? AxisOrientation.Vertical;
+        SetRule(new ImpostPlacementRule(orientation, newRelativePosition));
     }
 }

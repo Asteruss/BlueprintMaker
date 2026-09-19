@@ -17,6 +17,7 @@ public abstract class WindowNodeBase : IWindowNode
     private Contour? _localContour;
 
     private IDerivationRule? _rule;
+    public IDerivationRule? Rule => _rule;
     public virtual double GetPhysicalWidth() => 0;
 
     protected WindowNodeBase(Guid id, Contour? localContour, IDerivationRule? rule)

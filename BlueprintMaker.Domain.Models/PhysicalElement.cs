@@ -1,4 +1,5 @@
 ﻿using BlueprintMaker.Core.Geometry;
+using BlueprintMaker.Domain.Models.Elements;
 
 namespace BlueprintMaker.Domain.Models;
 
@@ -53,6 +54,20 @@ public abstract class PhysicalElement : WindowNodeBase, IMaterializable
             arc.Center.X + arc.Radius * Math.Cos(midAngle),
             arc.Center.Y + arc.Radius * Math.Sin(midAngle));
     }
+
+    public Jamb AttachJamb(int startSegment, int segmentCount = 1)
+    {
+        // Передаем доборнику индексы сегментов, к которым он крепится
+        var jamb = new Jamb(Guid.NewGuid(), this, startSegment, segmentCount);
+
+        // Сохраняем тип контура на случай будущей заморозки
+        bool isFull = (segmentCount == this.GetContour().Vertices.Count) && this.GetContour().IsClosed;
+        jamb.SetClosedCache(isFull);
+
+        AddChildInternal(jamb);
+        return jamb;
+    }
+
 
     // Вспомогательный метод, чтобы понимать, замкнут контур (Рама) или открыт (Импост)
     protected abstract Contour RebuildContour(List<ContourVertex> vertices);

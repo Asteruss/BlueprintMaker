@@ -10,7 +10,7 @@ namespace BlueprintMaker.Domain.Models.Elements;
 /// <summary>
 /// Рама окна. Внешний контур. Единственный элемент, хранящий локальную геометрию напрямую.
 /// </summary>
-public sealed class Frame : WindowNodeBase, IMaterializable
+public sealed class Frame : PhysicalElement
 {
     public double Width { get; private set; }
     public LightSpace InnerSpace { get; }
@@ -32,7 +32,7 @@ public sealed class Frame : WindowNodeBase, IMaterializable
     }
 
 
-    public void Materialize(double frameWidth)
+    public override void Materialize(double frameWidth)
     {
         if (frameWidth <= 0) throw new ArgumentException("Ширина должна быть больше нуля");
         Width = frameWidth;
@@ -46,8 +46,8 @@ public sealed class Frame : WindowNodeBase, IMaterializable
         UpdateLocalContour(newContour);
     }
 
-    public static Frame Create(Contour contour)
-    {
-        return new Frame(Guid.NewGuid(), contour);
-    }
+    public static Frame Create(Contour contour) => new(Guid.NewGuid(), contour);
+    
+    protected override Contour RebuildContour(List<ContourVertex> vertices) => Contour.CreateClosed(vertices);
+
 }

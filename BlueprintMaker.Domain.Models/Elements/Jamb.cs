@@ -8,8 +8,8 @@ public sealed class Jamb : PhysicalElement
     public double Width { get; private set; }
 
     // Конструктор принимает индекс сегмента и их количество
-    internal Jamb(Guid id, IWindowNode parent, int startSegment, int segmentCount)
-        : base(id, localContour: null, rule: new SegmentOffsetRule(startSegment, segmentCount))
+    internal Jamb(Guid id, IWindowNode treeParent, IWindowNode wallParent, int startSegment, int segmentCount)
+        : base(id, localContour: null, rule: new SegmentOffsetRule(wallParent, startSegment, segmentCount))
     {
     }
 

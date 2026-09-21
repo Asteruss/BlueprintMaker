@@ -3,7 +3,7 @@ using BlueprintMaker.Domain.Models.Elements;
 
 namespace BlueprintMaker.Domain.Models.Tests;
 
-public class JambTests
+public class JambPlacementTests
 {
     private Frame CreateRectFrame(double w, double h)
     {
@@ -18,47 +18,96 @@ public class JambTests
     }
 
     [Fact]
-    public void Jamb_AttachedToSingleSegment_Has2Vertices()
+    public void AddJamb_External_AttachesToWallOutside()
     {
         var frame = CreateRectFrame(100, 100);
 
-        // Крепим к сегменту 0 (нижняя грань: от 0,0 до 100,0)
-        var jamb = frame.AttachJamb(0, 1);
+        // UI передает: сегмент 0, без пространства (null)
+        var jamb = frame.AddJamb(0, targetSpace: null);
 
-        // Доборник должен быть открытой линией с 2 вершинами
-        Assert.False(jamb.GetContour().IsClosed);
-        Assert.Equal(2, jamb.GetContour().Vertices.Count);
+        // У рамы теперь 2 ребенка: её InnerSpace и внешний доборник
+        Assert.Equal(2, frame.Children.Count);
 
-        // Габариты должны совпадать с нижней гранью
-        Assert.Equal(100, jamb.GetContour().BoundingBox.Width, 2);
-        Assert.Equal(0, jamb.GetContour().BoundingBox.MinY, 2);
+        // Проверяем, что доборник реально лежит в детях рамы
+        Assert.Contains(jamb, frame.Children);
+
+        // У самого доборника нет детей (он еще не материализован и не имеет своих вложенных пространств)
+        Assert.Empty(jamb.Children);
     }
 
     [Fact]
-    public void Jamb_AttachedToMultipleSegments_Has3Vertices()
+    public void AddJamb_Internal_OccupiesGivenSpace()
     {
         var frame = CreateRectFrame(100, 100);
+        frame.Materialize(10);
+        var rootSpace = frame.InnerSpace;
 
-        // Крепим к сегментам 0 и 1 (нижняя и правая грани: 0,0 -> 100,0 -> 100,100)
-        var jamb = frame.AttachJamb(0, 2);
+        // Вставляем импост, чтобы получить 2 пространства
+        var (space1, space2, impost) = rootSpace.InsertImpost(AxisOrientation.Vertical, 0.5);
 
-        Assert.False(jamb.GetContour().IsClosed);
-        Assert.Equal(3, jamb.GetContour().Vertices.Count);
+        // UI передает: сегмент 0 ИМПОСТА, и целевое пространство space1
+        var jamb = impost.AddJamb(0, targetSpace: space1);
 
-        // Проверяем среднюю точку (она должна быть 100,0)
-        Assert.Equal(new Point(100, 0), jamb.GetContour().Vertices[1].Position);
+        // Доборник должен стать ребенком space1, а не импоста
+        Assert.Equal(2, space1.Children.Count); // Доборник + Остаток
+        Assert.Equal(jamb, space1.Children[0]);
+
+        // Space2 остался пустым
+        Assert.Empty(space2.Children);
+
+        // У самого импоста не должно появиться детей (он не родитель доборника)
+        Assert.Empty(impost.Children);
     }
 
     [Fact]
-    public void Jamb_AttachedToFullContour_BecomesClosed()
+    public void AddJamb_Internal_ToOccupiedSpace_Throws()
     {
         var frame = CreateRectFrame(100, 100);
+        frame.Materialize(10);
+        var rootSpace = frame.InnerSpace;
 
-        // Крепим ко всем 4 сегментам рамы (весь периметр)
-        var jamb = frame.AttachJamb(0, 4);
+        // Занимаем rootSpace первым доборником
+        frame.AddJamb(0, targetSpace: rootSpace);
 
-        // Доборник должен стать замкнутым контуром
-        Assert.True(jamb.GetContour().IsClosed);
-        Assert.Equal(4, jamb.GetContour().Vertices.Count);
+        // Пытаемся всунуть туда же второй
+        Assert.Throws<InvalidOperationException>(() =>
+            frame.AddJamb(1, targetSpace: rootSpace));
+    }
+
+    [Fact]
+    public void AddJamb_MultipleJambsInSequence_OccupiesCorrectSpaces()
+    {
+        var frame = CreateRectFrame(100, 100);
+        frame.Materialize(10);
+        var rootSpace = frame.InnerSpace;
+
+        // 1. Вставляем вертикальный импост по центру (делит на лево/право)
+        var (space1, space2, impost) = rootSpace.InsertImpost(AxisOrientation.Vertical, 0.5);
+
+        // 2. Добавляем ПЕРВЫЙ доборник в space1, прикрепив к импосту
+        var jamb1 = impost.AddJamb(0, targetSpace: space1);
+
+        // В space1 теперь 2 ребенка: jamb1 и Остаток1
+        Assert.Equal(2, space1.Children.Count);
+        var remainingSpace1 = space1.Children[1] as LightSpace;
+        Assert.NotNull(remainingSpace1);
+
+        // 3. Добавляем второй доборник, прикрепив его к первому доборнику, 
+        // и помещаем в Остаток1
+        var jamb2 = jamb1.AddJamb(0, targetSpace: remainingSpace1);
+
+        // В Остатке1 теперь 2 ребенка: jamb2 и Остаток2
+        Assert.Equal(2, remainingSpace1.Children.Count);
+        Assert.Equal(jamb2, remainingSpace1.Children[0]);
+
+        var remainingSpace2 = remainingSpace1.Children[1] as LightSpace;
+        Assert.NotNull(remainingSpace2);
+
+        // 4. Проверяем финальный остаток
+        // Он должен быть пустым (готов к заполнению стеклом или декором)
+        Assert.Empty(remainingSpace2.Children);
+
+        // И убеждаемся, что правое пространство (space2) вообще не тронули
+        Assert.Empty(space2.Children);
     }
 }

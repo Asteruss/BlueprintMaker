@@ -55,17 +55,37 @@ public abstract class PhysicalElement : WindowNodeBase, IMaterializable
             arc.Center.Y + arc.Radius * Math.Sin(midAngle));
     }
 
-    public Jamb AttachJamb(int startSegment, int segmentCount = 1)
+    /// <summary>
+    /// Добавляет доборник к сегменту стены.
+    /// </summary>
+    /// <param name="startSegment">Индекс сегмента, к которому крепится доборник</param>
+    /// <param name="targetSpace">Целевое световое пространство (если внутренний). Null = внешний.</param>
+    /// <param name="segmentCount">Количество сегментов</param>
+    public Jamb AddJamb(int startSegment, LightSpace? targetSpace = null, int segmentCount = 1)
     {
-        // Передаем доборнику индексы сегментов, к которым он крепится
-        var jamb = new Jamb(Guid.NewGuid(), this, startSegment, segmentCount);
+        if (targetSpace == null)
+        {
+            // ВНЕШНИЙ ДОБОРНИК: Просто крепится снаружи, дерево-родитель - сама стена
+            var externalJamb = new Jamb(Guid.NewGuid(), this, this, startSegment, segmentCount);
+            AddChildInternal(externalJamb);
+            return externalJamb;
+        }
+        else
+        {
+            // ВНУТРЕННИЙ ДОБОРНИК: Занимает слот в targetSpace
+            if (targetSpace.Children.Count > 0)
+                throw new InvalidOperationException("Пространство уже занято. Сначала очистите его.");
 
-        // Сохраняем тип контура на случай будущей заморозки
-        bool isFull = (segmentCount == this.GetContour().Vertices.Count) && this.GetContour().IsClosed;
-        jamb.SetClosedCache(isFull);
+            // Геометрия берется от стены (this), а дерево-родитель - targetSpace
+            var internalJamb = new Jamb(Guid.NewGuid(), targetSpace, this, startSegment, segmentCount);
+            targetSpace.AddChildInternal(internalJamb);
 
-        AddChildInternal(jamb);
-        return jamb;
+            // Создаем остаток пространства
+            var remainingSpace = new LightSpace(Guid.NewGuid(), targetSpace);
+            targetSpace.AddChildInternal(remainingSpace);
+
+            return internalJamb;
+        }
     }
 
 

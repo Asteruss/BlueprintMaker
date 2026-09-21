@@ -43,4 +43,16 @@ public sealed class LightSpace : WindowNodeBase
 
         return (space1, space2, impost);
     }
+
+    public Sash InsertSash()
+    {
+        if (Children.Count > 0)
+            throw new InvalidOperationException("Пространство уже занято. Сначала очистите его.");
+
+        var sash = new Sash(Guid.NewGuid(), this);
+        AddChildInternal(sash);
+
+        return sash;
+    }
+
 }

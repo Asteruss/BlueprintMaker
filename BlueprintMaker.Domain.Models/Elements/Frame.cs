@@ -10,7 +10,7 @@ namespace BlueprintMaker.Domain.Models.Elements;
 /// <summary>
 /// Рама окна. Внешний контур. Единственный элемент, хранящий локальную геометрию напрямую.
 /// </summary>
-public sealed class Frame : PhysicalElement
+public class Frame : PhysicalElement
 {
     public double Width { get; private set; }
     public LightSpace InnerSpace { get; }
@@ -25,6 +25,12 @@ public sealed class Frame : PhysicalElement
         AddChildInternal(InnerSpace);
     }
 
+    protected Frame(Guid id, IDerivationRule rule)
+        : base(id, localContour: null, rule: rule)
+    {
+        InnerSpace = new LightSpace(Guid.NewGuid(), this);
+        AddChildInternal(InnerSpace);
+    }
     public override double GetPhysicalWidth()
     {
         // Если скелет (ширина 0), возвращаем дефолт для UI. Иначе реальную ширину

@@ -33,6 +33,6 @@ public sealed class Impost : PhysicalElement
         SetRule(new ImpostPlacementRule(orientation, newRelativePosition));
     }
 
-    protected override Contour RebuildContour(List<ContourVertex> vertices) => Contour.CreateClosed(vertices);
+    protected override Contour RebuildContour(List<ContourVertex> vertices) => Contour.CreateOpen(vertices);
 
 }

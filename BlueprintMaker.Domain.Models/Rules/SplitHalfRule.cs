@@ -21,33 +21,28 @@ public sealed class SplitHalfRule : IDerivationRule
         var parentContour = parent.GetContour();
         var impostContour = _impost.GetContour();
 
-        // Режем контур родителя линией импоста
         var (path1, path2) = ContourMath.SliceContour(parentContour, impostContour);
 
-        // Определяем, какая сторона левая, а какая правая
+        // Железобетонная логика: сравниваем центры габаритов получившихся кусков
         var center1 = path1.BoundingBox.Center;
-        var start = impostContour.Vertices[0].Position;
-        var end = impostContour.Vertices[1].Position;
+        var center2 = path2.BoundingBox.Center;
 
-        // Вектор направления импоста
-        double dx = end.X - start.X;
-        double dy = end.Y - start.Y;
+        bool path1IsFirst;
 
-        // Вектор от начала импоста к центру path1
-        double vx1 = center1.X - start.X;
-        double vy1 = center1.Y - start.Y;
+        // Если импост вертикальный (разделил по горизонтали) - First должна быть левее
+        if (Math.Abs(center1.X - center2.X) > 0.001)
+        {
+            path1IsFirst = center1.X < center2.X;
+        }
+        else // Импост горизонтальный - First должна быть выше
+        {
+            path1IsFirst = center1.Y < center2.Y;
+        }
 
-        // Векторное произведение (Z-компонента)
-        // Если cross > 0, то path1 находится слева от направления импоста
-        double cross1 = dx * vy1 - dy * vx1;
-
-        bool path1IsLeftOrTop = cross1 > 0;
-
-        // Если просят First (Лево/Верх), и path1 лево -> отдаем path1
         if (_side == SplitSide.First)
-            return path1IsLeftOrTop ? path1 : path2;
+            return path1IsFirst ? path1 : path2;
         else
-            return path1IsLeftOrTop ? path2 : path1;
+            return path1IsFirst ? path2 : path1;
     }
 }
 

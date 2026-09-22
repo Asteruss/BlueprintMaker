@@ -9,6 +9,6 @@ public sealed class Document
 {
     public Frame? Root { get; private set; }
 
-    internal void SetRoot(Frame frame) => Root = frame;
-    internal void ClearRoot() => Root = null;
+    public void SetRoot(Frame frame) => Root = frame;
+    public void ClearRoot() => Root = null;
 }

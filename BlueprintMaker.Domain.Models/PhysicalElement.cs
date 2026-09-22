@@ -43,6 +43,16 @@ public abstract class PhysicalElement : WindowNodeBase, IMaterializable
         UpdateLocalContour(RebuildContour(currentVertices));
     }
 
+    public void RemoveNode(int vertexIndex)
+    {
+        var currentVertices = GetContour().Vertices.ToList();
+        if (vertexIndex < 0 || vertexIndex >= currentVertices.Count)
+            throw new ArgumentOutOfRangeException(nameof(vertexIndex));
+
+        currentVertices.RemoveAt(vertexIndex);
+        UpdateLocalContour(RebuildContour(currentVertices));
+    }
+
     private Point _getSegmentMidpoint(ContourVertex from, ContourVertex to)
     {
         if (!from.IsArcStart)
@@ -65,14 +75,14 @@ public abstract class PhysicalElement : WindowNodeBase, IMaterializable
     {
         if (targetSpace == null)
         {
-            // ВНЕШНИЙ ДОБОРНИК: Просто крепится снаружи, дерево-родитель - сама стена
+            // внешний доборник: просто крепится снаружи, дерево-родитель - сама стена
             var externalJamb = new Jamb(Guid.NewGuid(), this, this, startSegment, segmentCount);
             AddChildInternal(externalJamb);
             return externalJamb;
         }
         else
         {
-            // ВНУТРЕННИЙ ДОБОРНИК: Занимает слот в targetSpace
+            // внутренний доборник: занимает слот в targetSpace
             if (targetSpace.Children.Count > 0)
                 throw new InvalidOperationException("Пространство уже занято. Сначала очистите его.");
 

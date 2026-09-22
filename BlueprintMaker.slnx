@@ -4,6 +4,7 @@
     <Project Path="BlueprintMaker.Application/BlueprintMaker.Application.csproj" Id="6305bcfe-7dbb-43f0-811a-1ed42fe8e13f" />
     <Project Path="BlueprintMaker.Core.Geometry/BlueprintMaker.Core.Geometry.csproj" />
     <Project Path="BlueprintMaker.Domain.Models/BlueprintMaker.Domain.Models.csproj" Id="65893956-3577-4e86-af44-ded2f74edbbc" />
+    <Project Path="BlueprintMaker.Presentation.Wpf/BlueprintMaker.Presentation.Wpf.csproj" Id="59032f56-57e4-463c-9d6d-f8db2be3b594" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="BlueprintMaker.Application.Commands.Tests/BlueprintMaker.Application.Commands.Tests.csproj" Id="571266c5-9b6f-4caf-a8ab-2624398f0a54" />

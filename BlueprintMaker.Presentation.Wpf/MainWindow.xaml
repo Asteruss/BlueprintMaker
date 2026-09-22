@@ -1,0 +1,28 @@
+﻿<Window x:Class="BlueprintMaker.Presentation.Wpf.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:BlueprintMaker.Presentation.Wpf"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="600" Width="800">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal" Margin="5">
+            <Button Content="Undo" Click="Undo_Click" Margin="2" Padding="10,2"/>
+            <Button Content="Redo" Click="Redo_Click" Margin="2" Padding="10,2"/>
+        </StackPanel>
+
+        <Canvas x:Name="DrawingCanvas" Grid.Row="1" Background="LightGray" ClipToBounds="True">
+            <Canvas.ContextMenu>
+                <ContextMenu x:Name="SegmentContextMenu">
+                    <MenuItem Header="Разбить в точке клика" Click="SplitSegment_Click"/>
+                </ContextMenu>
+            </Canvas.ContextMenu>
+        </Canvas>
+    </Grid>
+</Window>

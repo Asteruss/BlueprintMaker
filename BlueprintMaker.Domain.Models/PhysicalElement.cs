@@ -34,12 +34,15 @@ public abstract class PhysicalElement : WindowNodeBase, IMaterializable
     public void SplitAt(int segmentIndex, Point? position = null)
     {
         var currentVertices = GetContour().Vertices.ToList();
-        if (segmentIndex < 0 || segmentIndex >= currentVertices.Count - 1)
+
+        int maxSegmentIndex = currentVertices.Count - (GetContour().IsClosed ? 0 : 1);
+
+        if (segmentIndex < 0 || segmentIndex >= maxSegmentIndex)
             throw new ArgumentOutOfRangeException(nameof(segmentIndex));
 
-        var targetPos = position ?? _getSegmentMidpoint(currentVertices[segmentIndex], currentVertices[segmentIndex + 1]);
-        currentVertices.Insert(segmentIndex + 1, new ContourVertex(targetPos, 0));
+        var targetPos = position ?? _getSegmentMidpoint(currentVertices[segmentIndex], currentVertices[(segmentIndex + 1) % currentVertices.Count]);
 
+        currentVertices.Insert(segmentIndex + 1, new ContourVertex(targetPos, 0));
         UpdateLocalContour(RebuildContour(currentVertices));
     }
 
@@ -98,7 +101,18 @@ public abstract class PhysicalElement : WindowNodeBase, IMaterializable
         }
     }
 
-
+    protected List<ContourVertex> EnsureClockwise(List<ContourVertex> vertices)
+    {
+        // Проверяем только если точек 3 и больше (иначе площадь не посчитать)
+        if (vertices.Count >= 3)
+        {
+            if (ContourMath.CalculateSignedArea(vertices) < 0)
+            {
+                vertices.Reverse();
+            }
+        }
+        return vertices;
+    }
     // Вспомогательный метод, чтобы понимать, замкнут контур (Рама) или открыт (Импост)
     protected abstract Contour RebuildContour(List<ContourVertex> vertices);
 }

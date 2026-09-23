@@ -128,7 +128,7 @@ public partial class MainWindow : Window
         }
 
         // 3. Рисуем узлы (Точки), чтобы их можно было тянуть ЛКМ
-        if (node is PhysicalElement physEl)
+        if (node is PhysicalElement physEl && node is not Sash)
         {
             var vertices = physEl.GetContour().Vertices;
             for (int i = 0; i < vertices.Count; i++)
@@ -171,7 +171,7 @@ public partial class MainWindow : Window
         RenderTree();
     }
 
-    private void DrawingCanvas_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    private void DrawingCanvas_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
     {
         _lastRightClickPoint = e.GetPosition(DrawingCanvas);
     }

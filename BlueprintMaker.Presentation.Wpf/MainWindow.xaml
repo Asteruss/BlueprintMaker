@@ -17,7 +17,8 @@
             <Button Content="Redo" Click="Redo_Click" Margin="2" Padding="10,2"/>
         </StackPanel>
 
-        <Canvas x:Name="DrawingCanvas" Grid.Row="1" Background="LightGray" ClipToBounds="True">
+        <Canvas x:Name="DrawingCanvas" Grid.Row="1" Background="LightGray" ClipToBounds="True" 
+                PreviewMouseRightButtonDown="DrawingCanvas_PreviewMouseRightButtonDown">
             <Canvas.ContextMenu>
                 <ContextMenu x:Name="SegmentContextMenu">
                     <MenuItem Header="Разбить в точке клика" Click="SplitSegment_Click"/>

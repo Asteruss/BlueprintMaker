@@ -77,6 +77,8 @@ public static class ContourMath
         for (int i = 0; i < n; i++)
             result[i] = new ContourVertex(newPositions[i], vertices[i].Bulge);
 
+        var resultList = result.ToList();
+        EnsureClockwise(resultList);
         return result;
     }
 
@@ -283,6 +285,30 @@ public static class ContourMath
         var second = Contour.CreateClosed(path2);
 
         return (first, second);
+    }
+
+    /// <summary>
+    /// Вычисляет знак площади (положительный = по часовой стрелке, отрицательный = против).
+    /// </summary>
+    public static double CalculateSignedArea(IReadOnlyList<ContourVertex> vertices)
+    {
+        double sum = 0;
+        for (int i = 0; i < vertices.Count; i++)
+        {
+            var a = vertices[i].Position;
+            var b = vertices[(i + 1) % vertices.Count].Position;
+            sum += a.X * b.Y - b.X * a.Y;
+        }
+        return sum / 2;
+    }
+
+    public static List<ContourVertex> EnsureClockwise(List<ContourVertex> vertices)
+    {
+        if (vertices.Count >= 3 && CalculateSignedArea(vertices) < 0)
+        {
+            vertices.Reverse();
+        }
+        return vertices;
     }
 
 }

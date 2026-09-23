@@ -29,8 +29,7 @@ public sealed class Jamb : PhysicalElement
     private bool _isClosedCache;
     internal void SetClosedCache(bool isClosed) => _isClosedCache = isClosed;
 
-    protected override Contour RebuildContour(List<ContourVertex> vertices)
-    {
-        return _isClosedCache ? Contour.CreateClosed(vertices) : Contour.CreateOpen(vertices);
-    }
+    protected override Contour RebuildContour(List<ContourVertex> vertices) =>
+        _isClosedCache ? Contour.CreateClosed(EnsureClockwise(vertices)) : Contour.CreateOpen(vertices);
+    
 }

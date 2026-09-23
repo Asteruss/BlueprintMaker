@@ -54,6 +54,6 @@ public class Frame : PhysicalElement
 
     public static Frame Create(Contour contour) => new(Guid.NewGuid(), contour);
     
-    protected override Contour RebuildContour(List<ContourVertex> vertices) => Contour.CreateClosed(vertices);
+    protected override Contour RebuildContour(List<ContourVertex> vertices) => Contour.CreateClosed(EnsureClockwise(vertices));
 
 }

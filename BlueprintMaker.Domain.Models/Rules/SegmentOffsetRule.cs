@@ -7,35 +7,50 @@ namespace BlueprintMaker.Domain.Models.Rules;
 /// </summary>
 public sealed class SegmentOffsetRule : IDerivationRule
 {
-    private readonly IWindowNode _wallParent; // Элемент, к которому крепимся (Рама/Импост)
+    private readonly IWindowNode _wallParent;
+    private readonly int _offsetSign; // 1 = наружу, -1 = внутрь
     public int StartSegment { get; }
     public int SegmentCount { get; }
 
-    public SegmentOffsetRule(IWindowNode wallParent, int startSegment, int segmentCount)
+    public SegmentOffsetRule(IWindowNode wallParent, int startSegment, int segmentCount, int offsetSign)
     {
         _wallParent = wallParent;
+        _offsetSign = offsetSign;
         StartSegment = startSegment;
         SegmentCount = segmentCount;
     }
 
     public Contour Resolve(IWindowNode parent)
     {
-        // Берем контур от сегмента
         var wallContour = _wallParent.GetContour();
         var wallVerts = wallContour.Vertices;
+        var extractedVerts = new List<ContourVertex>();
 
-        // Логика вырезания сегментов (как была раньше)
+        // Вырезаем нужные сегменты из стены
         if (SegmentCount == wallVerts.Count && wallContour.IsClosed)
-            return Contour.CreateClosed(new List<ContourVertex>(wallVerts));
-        
-
-        var resultVerts = new List<ContourVertex> { wallVerts[StartSegment] };
-        for (int i = 1; i <= SegmentCount; i++)
         {
-            int idx = (StartSegment + i) % wallVerts.Count;
-            resultVerts.Add(wallVerts[idx]);
+            extractedVerts.AddRange(wallVerts);
+        }
+        else
+        {
+            extractedVerts.Add(wallVerts[StartSegment]);
+            for (int i = 1; i <= SegmentCount; i++)
+            {
+                int idx = (StartSegment + i) % wallVerts.Count;
+                extractedVerts.Add(wallVerts[idx]);
+            }
         }
 
-        return Contour.CreateOpen(resultVerts);
+        // Вычисляем дистанцию сдвига (ширина стены * знак направления)
+        double offsetDistance = _wallParent.GetPhysicalWidth() * _offsetSign;
+
+        if (System.Math.Abs(offsetDistance) > 0.0001)
+        {
+            extractedVerts = ContourMath.OffsetPolyline(extractedVerts, offsetDistance).ToList();
+        }
+
+        return wallContour.IsClosed && SegmentCount == wallVerts.Count
+            ? Contour.CreateClosed(extractedVerts)
+            : Contour.CreateOpen(extractedVerts);
     }
 }

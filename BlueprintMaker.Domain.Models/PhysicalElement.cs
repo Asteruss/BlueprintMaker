@@ -92,22 +92,20 @@ public abstract class PhysicalElement : WindowNodeBase, IMaterializable
     {
         if (targetSpace == null)
         {
-            // внешний доборник: просто крепится снаружи, дерево-родитель - сама стена
-            var externalJamb = new Jamb(Guid.NewGuid(), this, this, startSegment, segmentCount);
+            // внешний: знак +1 (наружу)
+            var externalJamb = new Jamb(Guid.NewGuid(), this, this, startSegment, segmentCount, 1);
             AddChildInternal(externalJamb);
             return externalJamb;
         }
         else
         {
-            // внутренний доборник: занимает слот в targetSpace
             if (targetSpace.Children.Count > 0)
-                throw new InvalidOperationException("Пространство уже занято. Сначала очистите его.");
+                throw new InvalidOperationException("Пространство уже занято.");
 
-            // Геометрия берется от стены (this), а дерево-родитель - targetSpace
-            var internalJamb = new Jamb(Guid.NewGuid(), targetSpace, this, startSegment, segmentCount);
+            // внутренний: знак -1 (внутрь)
+            var internalJamb = new Jamb(Guid.NewGuid(), targetSpace, this, startSegment, segmentCount, -1);
             targetSpace.AddChildInternal(internalJamb);
 
-            // Создаем остаток пространства
             var remainingSpace = new LightSpace(Guid.NewGuid(), targetSpace);
             targetSpace.AddChildInternal(remainingSpace);
 

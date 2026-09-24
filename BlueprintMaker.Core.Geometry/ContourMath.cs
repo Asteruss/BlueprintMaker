@@ -310,5 +310,37 @@ public static class ContourMath
         }
         return vertices;
     }
+    public static List<ContourVertex> OffsetPolyline(IReadOnlyList<ContourVertex> vertices, double distance)
+    {
+        var result = new List<ContourVertex>();
+        int n = vertices.Count;
+        if (n == 0) return result;
 
+        for (int i = 0; i < n; i++)
+        {
+            var curr = vertices[i];
+            var prev = i > 0 ? vertices[i - 1] : curr;
+            var next = i < n - 1 ? vertices[i + 1] : curr;
+
+            double dx1 = curr.Position.X - prev.Position.X;
+            double dy1 = curr.Position.Y - prev.Position.Y;
+            double len1 = Math.Sqrt(dx1 * dx1 + dy1 * dy1);
+
+            double dx2 = next.Position.X - curr.Position.X;
+            double dy2 = next.Position.Y - curr.Position.Y;
+            double len2 = Math.Sqrt(dx2 * dx2 + dy2 * dy2);
+
+            double nx = 0, ny = 0;
+            // Левая нормаль на экране (наружу для обхода по часовой)
+            if (len1 > 0.0001) { nx += dy1 / len1; ny += -dx1 / len1; }
+            if (len2 > 0.0001) { nx += dy2 / len2; ny += -dx2 / len2; }
+
+            double nlen = Math.Sqrt(nx * nx + ny * ny);
+            if (nlen > 0.0001) { nx /= nlen; ny /= nlen; }
+
+            var offset = new Point(nx * distance, ny * distance);
+            result.Add(new ContourVertex(curr.Position + offset, curr.Bulge));
+        }
+        return result;
+    }
 }

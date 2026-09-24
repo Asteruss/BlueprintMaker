@@ -20,7 +20,7 @@ public sealed class LightSpace : WindowNodeBase
     {
     }
 
-    public override double GetPhysicalWidth() => 0;
+    public override double GetPhysicalWidth() => GeometryConstants.DisplayWidth;
 
     /// <summary>
     /// Вставка импоста 

@@ -11,4 +11,8 @@ public sealed class Document
 
     public void SetRoot(Frame frame) => Root = frame;
     public void ClearRoot() => Root = null;
+    public void Reset()
+    {
+        Root = null;
+    }
 }

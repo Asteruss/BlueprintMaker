@@ -12,29 +12,22 @@ public static class BulgeMath
     /// </summary>
     public static double BulgeFromThreePoints(Point start, Point control, Point end)
     {
-        // Определяем, с какой стороны от прямой (start-end) лежит контрольная точка
         double cross = (end.X - start.X) * (control.Y - start.Y) - (end.Y - start.Y) * (control.X - start.X);
 
-        // Вычисляем угол между векторами (control-start) и (end-control)
-        // Упрощенный расчет bulge через тангенс четверти угла
         double d1 = start.DistanceTo(control);
         double d2 = control.DistanceTo(end);
         double d3 = start.DistanceTo(end);
 
         if (d1 < 0.0001 || d2 < 0.0001 || d3 < 0.0001) return 0;
 
-        // Формула угла по трем сторонам (теорема косинусов) -> тангенс половинного угла
-        // Чтобы не усложнять код сложной тригонометрией, используем геометрический подход:
-        // Считаем высоту треугольника (h) и основание (d3)
-        double s = (d1 + d2 + d3) / 2; // полупериметр
+        double s = (d1 + d2 + d3) / 2;
         double area = Math.Sqrt(Math.Max(0, s * (s - d1) * (s - d2) * (s - d3)));
         double h = d3 > 0.0001 ? 2 * area / d3 : 0;
 
-        // tan(θ/4) = h / (d3/2) = 2h / d3
         double bulge = (2 * h) / d3;
 
-        // Если точка справа от вектора (по часовой), bulge отрицательный, иначе положительный
-        return cross > 0 ? bulge : -bulge;
+        // Если точка выше линии (на экране Y меньше), cross < 0. Дуга должна выгнуться вверх (Bulge > 0).
+        return cross < 0 ? bulge : -bulge;
     }
 
     /// <summary>

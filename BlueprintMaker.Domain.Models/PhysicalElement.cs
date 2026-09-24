@@ -31,6 +31,20 @@ public abstract class PhysicalElement : WindowNodeBase, IMaterializable
         UpdateLocalContour(RebuildContour(currentVertices));
     }
 
+    public void SetSegmentArcByControlPoint(int startVertexIndex, Point controlPoint)
+    {
+        var currentVertices = GetContour().Vertices.ToList();
+        if (startVertexIndex < 0 || startVertexIndex >= currentVertices.Count - 1)
+            throw new ArgumentOutOfRangeException(nameof(startVertexIndex));
+
+        var from = currentVertices[startVertexIndex].Position;
+        var to = currentVertices[startVertexIndex + 1].Position;
+
+        // Вычисляем Bulge по 3 точкам
+        double bulge = BulgeMath.BulgeFromThreePoints(from, controlPoint, to);
+        SetSegmentArc(startVertexIndex, bulge);
+    }
+
     public void SplitAt(int segmentIndex, Point? position = null)
     {
         var currentVertices = GetContour().Vertices.ToList();

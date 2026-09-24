@@ -13,17 +13,17 @@
         </Grid.RowDefinitions>
 
         <StackPanel Orientation="Horizontal" Margin="5">
+            <TextBlock Text="Ширина:" VerticalAlignment="Center"/>
+            <TextBox x:Name="WidthBox" Width="40" Text="500" Margin="2"/>
+            <TextBlock Text="Высота:" VerticalAlignment="Center"/>
+            <TextBox x:Name="HeightBox" Width="40" Text="400" Margin="2"/>
+            <Button Content="Создать раму" Click="CreateCustomFrame_Click" Margin="2" Padding="10,2"/>
+            <Separator Margin="10,0"/>
             <Button Content="Undo" Click="Undo_Click" Margin="2" Padding="10,2"/>
             <Button Content="Redo" Click="Redo_Click" Margin="2" Padding="10,2"/>
         </StackPanel>
 
-        <Canvas x:Name="DrawingCanvas" Grid.Row="1" Background="LightGray" ClipToBounds="True" 
-                PreviewMouseRightButtonDown="DrawingCanvas_PreviewMouseRightButtonDown">
-            <Canvas.ContextMenu>
-                <ContextMenu x:Name="SegmentContextMenu">
-                    <MenuItem Header="Разбить в точке клика" Click="SplitSegment_Click"/>
-                </ContextMenu>
-            </Canvas.ContextMenu>
-        </Canvas>
+        <Canvas x:Name="DrawingCanvas" Grid.Row="1" Background="White" ClipToBounds="True"
+                PreviewMouseRightButtonDown="DrawingCanvas_PreviewMouseRightButtonDown"/>
     </Grid>
 </Window>

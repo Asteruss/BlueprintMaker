@@ -28,13 +28,22 @@ public static class GeometryExtensions
                 }
                 else
                 {
-                    var arc = BulgeMath.GetArcParameters(from.Position, to.Position, from.Bulge);
+                    double chord = from.Position.DistanceTo(to.Position);
+                    double theta = 4 * System.Math.Atan(from.Bulge);
+
+                    // Модуль радиуса
+                    double radius = System.Math.Abs(chord / (2 * System.Math.Sin(theta / 2)));
+                    bool isLargeArc = System.Math.Abs(theta) > System.Math.PI;
+
+                    // Bulge > 0 = по часовой (внешняя для рамы). Bulge < 0 = против часовой (внутрь).
+                    var sweepDir = from.Bulge > 0 ? SweepDirection.Clockwise : SweepDirection.Counterclockwise;
+
                     ctx.ArcTo(
                         to.Position.ToWpf(),
-                        new System.Windows.Size(arc.Radius, arc.Radius),
+                        new System.Windows.Size(radius, radius),
                         0,
-                        System.Math.Abs(arc.SweepAngle) > System.Math.PI,
-                        arc.SweepAngle >= 0 ? SweepDirection.Counterclockwise : SweepDirection.Clockwise,
+                        isLargeArc,
+                        sweepDir,
                         true, false);
                 }
             }

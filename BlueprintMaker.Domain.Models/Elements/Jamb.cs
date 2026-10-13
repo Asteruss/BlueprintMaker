@@ -5,23 +5,11 @@ namespace BlueprintMaker.Domain.Models.Elements;
 
 public sealed class Jamb : PhysicalElement
 {
-    public double Width { get; private set; }
 
     // Конструктор принимает индекс сегмента и их количество
     internal Jamb(Guid id, IWindowNode treeParent, IWindowNode wallParent, int startSegment, int segmentCount, int offsetSign)
     : base(id, localContour: null, rule: new SegmentOffsetRule(wallParent, startSegment, segmentCount, offsetSign))
     {
-    }
-
-    public override double GetPhysicalWidth()
-    {
-        return Width == 0 ? GeometryConstants.DisplayWidth : Width;
-    }
-
-    public override void Materialize(double width)
-    {
-        if (width <= 0) throw new ArgumentException("Ширина должна быть больше нуля.");
-        Width = width;
     }
 
     // Если пользователь заморозил доборник и начал двигать его узлы,

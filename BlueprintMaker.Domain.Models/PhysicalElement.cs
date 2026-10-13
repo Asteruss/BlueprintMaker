@@ -5,11 +5,29 @@ namespace BlueprintMaker.Domain.Models;
 
 public abstract class PhysicalElement : WindowNodeBase, IMaterializable
 {
+    public double Width { get; private set; }
+
     protected PhysicalElement(Guid id, Contour? localContour, IDerivationRule? rule)
         : base(id, localContour, rule)
     {
     }
-    public abstract void Materialize(double width);
+
+    public void Materialize(double width)
+    {
+        if (width <= 0) throw new ArgumentException("Ширина должна быть больше нуля.");
+        Width = width;
+        OnMaterialized();
+    }
+
+    public virtual IReadOnlyList<Contour> GetPhysicalGeometry()
+    {
+        return new List<Contour> { GetContour() };
+    }
+
+    protected virtual void OnMaterialized() { }
+
+    public override double GetPhysicalWidth() => Width == 0 ? GeometryConstants.DisplayWidth : Width;
+    
 
     public void MoveNode(int vertexIndex, Point newPosition)
     {

@@ -29,6 +29,8 @@ public partial class MainViewModel : ReactiveObject
     public ReactiveCommand<Unit, Unit> UndoCommand { get; }
     public ReactiveCommand<Unit, Unit> RedoCommand { get; }
     public ReactiveCommand<Unit, Unit> MaterializeCommand { get; }
+    public ReactiveCommand<Unit, Unit> InsertVerticalImpostCommand { get; }
+    public ReactiveCommand<Unit, Unit> InsertHorizontalImpostCommand { get; }
     public ReactiveCommand<SelectableElement, Unit> SelectElementCommand { get; }
     public ReactiveCommand<JointEndType, Unit> SetJointTypeCommand { get; }
     [Reactive] private SelectableElement? _selectedElement;
@@ -42,13 +44,13 @@ public partial class MainViewModel : ReactiveObject
 
         SelectElementCommand = ReactiveCommand.Create<SelectableElement>(element =>
         {
+            // Рекурсивно снимаем выделение со всего дерева
             if (SelectedFrame != null)
             {
-                SelectedFrame.IsSelected = false;
-                foreach (var child in SelectedFrame.Children)
-                    child.IsSelected = false;
+                DeselectAll(SelectedFrame);
             }
 
+            // Выделяем только выбранный
             element.IsSelected = true;
             SelectedElement = element;
             StatusMessage = $"Выбран: {element.DisplayName}";
@@ -80,6 +82,34 @@ public partial class MainViewModel : ReactiveObject
                 UpdateHistoryState();
             }
         }, canMaterializeObservable);
+
+        InsertVerticalImpostCommand = ReactiveCommand.Create(() =>
+        {
+            if (SelectedElement is LightSpaceViewModel lsVM)
+            {
+                _history.Execute(new InsertImpostCommand(lsVM.SourceSpace, Core.Geometry.AxisOrientation.Vertical, 0.5));
+                SelectedFrame?.Refresh();
+                StatusMessage = "Импост вставлен";
+            }
+            else
+            {
+                StatusMessage = "Выберите световое пространство для импоста";
+            }
+        }, this.WhenAnyValue(x => x.SelectedElement).Select(el => el is LightSpaceViewModel)); 
+
+        InsertHorizontalImpostCommand = ReactiveCommand.Create(() =>
+        {
+            if (SelectedElement is LightSpaceViewModel lsVM)
+            {
+                _history.Execute(new InsertImpostCommand(lsVM.SourceSpace, Core.Geometry.AxisOrientation.Horizontal, 0.5));
+                SelectedFrame?.Refresh();
+                StatusMessage = "Импост вставлен";
+            }
+            else
+            {
+                StatusMessage = "Выберите световое пространство для импоста";
+            }
+        }, this.WhenAnyValue(x => x.SelectedElement).Select(el => el is LightSpaceViewModel));
 
         // Команда смены стыка
         SetJointTypeCommand = ReactiveCommand.Create<JointEndType>(type =>
@@ -138,5 +168,14 @@ public partial class MainViewModel : ReactiveObject
             frame.Refresh();
 
         this.RaisePropertyChanged(nameof(Frames));
+    }
+
+    private void DeselectAll(SelectableElement element)
+    {
+        element.IsSelected = false;
+        foreach (var child in element.Children)
+        {
+            DeselectAll(child);
+        }
     }
 }

@@ -17,5 +17,5 @@ public static class GeometryConstants
     /// Дефолтная ширина бруса до момента материализации
     /// Нужна только для того, чтобы скелет и пустые пространства были видны на холсте
     /// </summary>
-    public const double DisplayWidth = 10.0;
+    public const double DisplayWidth = 2.0;
 }

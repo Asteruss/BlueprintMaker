@@ -29,8 +29,9 @@
 		<StackPanel Grid.Row="1" Orientation="Horizontal" Margin="5" Spacing="5" Grid.Column="0" Grid.ColumnSpan="3">
 			<Button Content="Undo" Command="{Binding UndoCommand}" Padding="10,2"/>
 			<Button Content="Redo" Command="{Binding RedoCommand}" Padding="10,2"/>
-			<Button Content="Материализовать (50)" Command="{Binding MaterializeCommand}" Padding="10,2"/>
-
+			<Button Content="Материализовать" Command="{Binding MaterializeCommand}" Padding="10,2"/>
+			<Button Content="Вставить вертикальный импост" Command="{Binding InsertVerticalImpostCommand}" Padding="10,2"/>
+			<Button Content="Вставить горизонтальный импост" Command="{Binding InsertHorizontalImpostCommand}" Padding="10,2"/>
 			<Separator Margin="10,0"/>
 
 			<!-- Инструменты стыков -->
@@ -49,7 +50,7 @@
 				<TreeDataTemplate DataType="vm:FrameViewModel" ItemsSource="{Binding Children}">
 					<Button Command="{Binding SelectCommand}" CommandParameter="{Binding}"
 							Padding="2" Background="Transparent" BorderThickness="0">
-						<TextBlock Text="{Binding DisplayName}" />
+						<TextBlock Text="{Binding DisplayName}" Foreground="{Binding DisplayColor}" />
 					</Button>
 				</TreeDataTemplate>
 			</TreeView.ItemTemplate>
@@ -91,7 +92,7 @@
 								<DataTemplate x:DataType="vm:WireframeLine">
 									<Path Data="{Binding Geometry}"
 										  Stroke="{Binding StrokeColor}"
-										  StrokeThickness="2"
+										  StrokeThickness="{Binding StrokeThickness}"
 										  Fill="Transparent"
 										  PointerPressed="ElementPath_PointerPressed"/>
 								</DataTemplate>
@@ -114,12 +115,54 @@
 									<Path Data="{Binding Geometry}"
 										  Fill="{Binding FillColor}"
 										  Stroke="Black"
-										  StrokeThickness="0.5"
+										  StrokeThickness="1"
 										  PointerPressed="ElementPath_PointerPressed"/>
 								</DataTemplate>
 							</ItemsControl.ItemTemplate>
 						</ItemsControl>
 
+
+						<ItemsControl ItemsSource="{Binding Spaces}">
+							<ItemsControl.ItemsPanel>
+								<ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
+							</ItemsControl.ItemsPanel>
+							<ItemsControl.Styles>
+								<Style Selector="ItemsControl > ContentPresenter">
+									<Setter Property="Canvas.Left" Value="0"/>
+									<Setter Property="Canvas.Top" Value="0"/>
+								</Style>
+							</ItemsControl.Styles>
+							<ItemsControl.ItemTemplate>
+								<DataTemplate x:DataType="vm:LightSpaceViewModel">
+									<Path Data="{Binding Geometry}"
+										  Fill="{Binding FillColor}"
+										  Stroke="Transparent"
+										  StrokeThickness="1"
+										  PointerPressed="ElementPath_PointerPressed"/>
+								</DataTemplate>
+							</ItemsControl.ItemTemplate>
+						</ItemsControl>
+
+						<!-- Импосты -->
+						<ItemsControl ItemsSource="{Binding Imposts}" IsVisible="{Binding !IsMaterialized}">
+							<ItemsControl.ItemsPanel>
+								<ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
+							</ItemsControl.ItemsPanel>
+							<ItemsControl.Styles>
+								<Style Selector="ItemsControl > ContentPresenter">
+									<Setter Property="Canvas.Left" Value="0"/>
+									<Setter Property="Canvas.Top" Value="0"/>
+								</Style>
+							</ItemsControl.Styles>
+							<ItemsControl.ItemTemplate>
+								<DataTemplate x:DataType="vm:ImpostViewModel">
+									<Path Data="{Binding Geometry}"
+										  Stroke="{Binding StrokeColor}"
+										  StrokeThickness="{Binding StrokeThickness}"
+										  PointerPressed="ElementPath_PointerPressed"/>
+								</DataTemplate>
+							</ItemsControl.ItemTemplate>
+						</ItemsControl>
 					</Panel>
 				</DataTemplate>
 			</ItemsControl.ItemTemplate>

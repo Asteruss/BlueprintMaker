@@ -1,8 +1,11 @@
-﻿using Avalonia.Media;
-using System.Reactive;
+﻿using Avalonia.Input;
+using Avalonia.Media;
+using BlueprintMaker.Core.Geometry;
 using BlueprintMaker.Domain.Models.Elements;
+using BlueprintMaker.Domain.Models.Rules;
 using ReactiveUI;
 using ReactiveUI.SourceGenerators;
+using System.Reactive;
 
 namespace BlueprintMaker.Presentation.Avalonia.ViewModels;
 
@@ -19,6 +22,14 @@ public partial class ImpostViewModel : SelectableElement
     }
 
     public IBrush StrokeColor => IsSelected ? Brushes.Blue : Brushes.Green;
+    public double StrokeThickness => GeometryConstants.DisplayWidth;
+
+    // Курсор для перетаскивания
+    public Cursor DragCursor => SourceImpost.Rule is ImpostPlacementRule r
+        ? (r.Orientation == AxisOrientation.Vertical
+            ? new Cursor(StandardCursorType.SizeWestEast)  
+            : new Cursor(StandardCursorType.SizeNorthSouth)) 
+        : Cursor.Default;
 
     protected override void OnSelectedChanged()
     {

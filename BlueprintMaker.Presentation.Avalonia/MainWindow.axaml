@@ -22,6 +22,8 @@
 		<Menu Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3">
 			<MenuItem Header="Файл">
 				<MenuItem Header="Создать окно" Command="{Binding CreateWindowCommand}"/>
+				<MenuItem Header="Создать окно-трапецию" Command="{Binding CreateWindowTCommand}"/>
+				<MenuItem Header="Создать окно-шестрагранник" Command="{Binding CreateWindowHCommand}"/>
 			</MenuItem>
 		</Menu>
 
@@ -57,7 +59,7 @@
 		</TreeView>
 
 		<!-- Холст -->
-		<ItemsControl Grid.Row="2" Grid.Column="1" Background="LightGray" ItemsSource="{Binding Frames}">
+		<ItemsControl x:Name="DrawingCanvas" Grid.Row="2" Grid.Column="1" Background="LightGray" ItemsSource="{Binding Frames}">
 			<ItemsControl.ItemsPanel>
 				<ItemsPanelTemplate>
 					<Canvas HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="LightGray"/>
@@ -159,6 +161,7 @@
 									<Path Data="{Binding Geometry}"
 										  Stroke="{Binding StrokeColor}"
 										  StrokeThickness="{Binding StrokeThickness}"
+										  Cursor="{Binding DragCursor}"
 										  PointerPressed="ElementPath_PointerPressed"/>
 								</DataTemplate>
 							</ItemsControl.ItemTemplate>

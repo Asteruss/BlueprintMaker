@@ -14,7 +14,7 @@ public abstract partial class SelectableElement : ReactiveObject
     [Reactive] private IBrush _displayColor = Brushes.Black;
     public double StrokeThickness => GeometryConstants.DisplayWidth;
     public ReactiveCommand<SelectableElement, Unit> SelectCommand { get; }
-    public string DisplayName { get; protected set; } = "Элемент";
+    [Reactive] private string _displayName = "Элемент";
 
     // Рекурсивная коллекция для дерева
     public ObservableCollection<SelectableElement> Children { get; } = new();

@@ -29,8 +29,9 @@ public partial class MainViewModel : ReactiveObject
     public ReactiveCommand<Unit, Unit> UndoCommand { get; }
     public ReactiveCommand<Unit, Unit> RedoCommand { get; }
     public ReactiveCommand<Unit, Unit> MaterializeCommand { get; }
+    public ReactiveCommand<SelectableElement, Unit> SelectElementCommand { get; }
     public ReactiveCommand<JointEndType, Unit> SetJointTypeCommand { get; }
-
+    [Reactive] private SelectableElement? _selectedElement;
     public MainViewModel()
     {
         var canUndoObservable = this.WhenAnyValue(x => x.CanUndo);
@@ -38,6 +39,20 @@ public partial class MainViewModel : ReactiveObject
         var canMaterializeObservable = this.WhenAnyValue(x => x.Frames.Count, count => count > 0);
 
         CreateWindowCommand = ReactiveCommand.Create(CreateWindow);
+
+        SelectElementCommand = ReactiveCommand.Create<SelectableElement>(element =>
+        {
+            if (SelectedFrame != null)
+            {
+                SelectedFrame.IsSelected = false;
+                foreach (var child in SelectedFrame.Children)
+                    child.IsSelected = false;
+            }
+
+            element.IsSelected = true;
+            SelectedElement = element;
+            StatusMessage = $"Выбран: {element.DisplayName}";
+        });
 
         UndoCommand = ReactiveCommand.Create(() =>
         {
@@ -100,14 +115,13 @@ public partial class MainViewModel : ReactiveObject
         });
 
         _history.Execute(new CreateFrameCommand(_document, contour));
-
         Frames.Clear();
         if (_document.Root != null)
         {
-            Frames.Add(new FrameViewModel(_document.Root, _history));
+            Frames.Add(new FrameViewModel(_document.Root, _history, SelectElementCommand));
             SelectedFrame = Frames[0];
+            SelectedFrame.IsSelected = true; 
         }
-
         StatusMessage = "Окно создано";
         UpdateHistoryState();
     }

@@ -6,6 +6,7 @@ using BlueprintMaker.Core.Geometry;
 using BlueprintMaker.Domain.Models.Rules;
 using BlueprintMaker.Presentation.Avalonia.ViewModels;
 using System;
+using CorePoint = BlueprintMaker.Core.Geometry.Point;
 
 namespace BlueprintMaker.Presentation.Avalonia;
 
@@ -27,6 +28,12 @@ public partial class MainWindow : Window
     {
         if (sender is Control ctrl && ctrl.DataContext is SelectableElement el)
         {
+            if (el is WireframeLine && DataContext is MainViewModel mvm)
+            {
+                var pos = e.GetPosition(DrawingCanvas);
+                mvm.LastClickPoint = new CorePoint(pos.X, pos.Y);
+            }
+
             if (el is ImpostViewModel impVM)
             {
                 _draggingImpost = impVM;

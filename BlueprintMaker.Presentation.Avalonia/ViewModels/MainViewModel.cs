@@ -24,6 +24,7 @@ public partial class MainViewModel : ReactiveObject
     [Reactive] private FrameViewModel? _selectedFrame;
 
     public ObservableCollection<FrameViewModel> Frames { get; } = new();
+    [Reactive] private Point? _lastClickPoint;
 
     public ReactiveCommand<Unit, Unit> CreateWindowCommand { get; }
     public ReactiveCommand<Unit, Unit> CreateWindowTCommand { get; }
@@ -34,6 +35,8 @@ public partial class MainViewModel : ReactiveObject
     public ReactiveCommand<Unit, Unit> InsertVerticalImpostCommand { get; }
     public ReactiveCommand<Unit, Unit> InsertHorizontalImpostCommand { get; }
     public ReactiveCommand<Unit, Unit> InsertMultipleImpostsCommand { get; }
+    public ReactiveCommand<Unit, Unit> SplitEqualCommand { get; }
+    public ReactiveCommand<Unit, Unit> SplitAtClickCommand { get; }
     public ReactiveCommand<SelectableElement, Unit> SelectElementCommand { get; }
     public ReactiveCommand<JointEndType, Unit> SetJointTypeCommand { get; }
     [Reactive] private SelectableElement? _selectedElement;
@@ -101,6 +104,35 @@ public partial class MainViewModel : ReactiveObject
                 UpdateHistoryState();
             }
         }, canMaterializeObservable);
+        SplitEqualCommand = ReactiveCommand.Create(() =>
+        {
+            if (SelectedElement is WireframeLine line)
+            {
+                // null означает разбить поровну (по середине)
+                _history.Execute(new SplitSegmentCommand(line.SourceElement, line.SegmentIndex, null));
+                SelectedFrame?.Refresh();
+                StatusMessage = "Линия разбита поровну";
+            }
+            else
+            {
+                StatusMessage = "Выберите линию для разбиения";
+            }
+        });
+
+        SplitAtClickCommand = ReactiveCommand.Create(() =>
+        {
+            if (SelectedElement is WireframeLine line && LastClickPoint != null)
+            {
+                _history.Execute(new SplitSegmentCommand(line.SourceElement, line.SegmentIndex, LastClickPoint));
+                SelectedFrame?.Refresh();
+                StatusMessage = "Линия разбита в точке клика";
+                LastClickPoint = null; // Сбрасываем точку
+            }
+            else
+            {
+                StatusMessage = "Сначала кликните по линии, чтобы выбрать её и запомнить точку";
+            }
+        });
 
         InsertVerticalImpostCommand = ReactiveCommand.Create(() =>
         {

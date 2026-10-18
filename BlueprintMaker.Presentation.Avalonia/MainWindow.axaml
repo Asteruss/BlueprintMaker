@@ -28,13 +28,15 @@
 		</Menu>
 
 		<!-- Панель инструментов -->
-		<StackPanel Grid.Row="1" Orientation="Horizontal" Margin="5" Spacing="5" Grid.Column="0" Grid.ColumnSpan="3">
+		<WrapPanel Grid.Row="1" Orientation="Horizontal" Margin="5"  Grid.Column="0" Grid.ColumnSpan="3">
 			<Button Content="Undo" Command="{Binding UndoCommand}" Padding="10,2"/>
 			<Button Content="Redo" Command="{Binding RedoCommand}" Padding="10,2"/>
 			<Button Content="Материализовать" Command="{Binding MaterializeCommand}" Padding="10,2"/>
 			<Button Content="Вставить вертикальный импост" Command="{Binding InsertVerticalImpostCommand}" Padding="10,2"/>
 			<Button Content="Вставить горизонтальный импост" Command="{Binding InsertHorizontalImpostCommand}" Padding="10,2"/>
 			<Button Content="Вставить 3 Импоста" Command="{Binding InsertMultipleImpostsCommand}" Padding="10,2"/>
+			<Button Content="Разбить поровну" Command="{Binding SplitEqualCommand}" Padding="10,2"/>
+			<Button Content="Разбить в точке клика" Command="{Binding SplitAtClickCommand}" Padding="10,2"/>
 			<Separator Margin="10,0"/>
 
 			<!-- Инструменты стыков -->
@@ -45,7 +47,7 @@
 			<Separator Margin="10,0"/>
 
 			<TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Margin="10,0,0,0"/>
-		</StackPanel>
+		</WrapPanel>
 
 		<!-- Дерево элементов -->
 		<TreeView Grid.Row="2" Grid.Column="0" ItemsSource="{Binding Frames}" Background="WhiteSmoke">

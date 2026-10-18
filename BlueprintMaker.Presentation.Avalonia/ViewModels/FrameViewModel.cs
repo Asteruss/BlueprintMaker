@@ -58,10 +58,11 @@ public partial class FrameViewModel : SelectableElement
             {
                 var from = contour.Vertices[i];
                 var to = contour.Vertices[(i + 1) % contour.Vertices.Count];
-                var line = new WireframeLine(from, to, _selectCmd);
+
+                // Передаем frame и i
+                var line = new WireframeLine(frame, i, from, to, _selectCmd);
                 parentVM.Children.Add(line);
                 Lines.Add(line);
-
             }
             for (int i = 0; i < contour.Vertices.Count; i++)
             {
@@ -100,7 +101,6 @@ public partial class FrameViewModel : SelectableElement
             {
                 var p = impContour.Vertices[i].Position;
                 var nodeType = (i == 0 || i == impContour.Vertices.Count - 1) ? NodeType.ImpostEnd : NodeType.ImpostSplit;
-
                 var nvm = new NodeViewModel(impost, i, p, _selectCmd, nodeType);
                 parentVM.Children.Add(nvm);
                 Nodes.Add(nvm);

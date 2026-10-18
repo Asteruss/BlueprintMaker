@@ -23,6 +23,8 @@ public sealed class SplitHalfRule : IDerivationRule
 
         var (path1, path2) = ContourMath.SliceContour(parentContour, impostContour);
 
+        if (path1 == null || path2 == null)
+            return parentContour;
 
         if (_side == SplitSide.First)
             return path2; 

@@ -64,22 +64,32 @@ public partial class FrameViewModel : SelectableElement
                 parentVM.Children.Add(line);
                 Lines.Add(line);
             }
-            for (int i = 0; i < contour.Vertices.Count; i++)
-            {
-                var p = contour.Vertices[i].Position;
-                var nvm = new NodeViewModel(frame, i, p, _selectCmd, NodeType.FrameCorner);
-                parentVM.Children.Add(nvm);
-                Nodes.Add(nvm);
-            }
-            // Доски рамы
             if (frame.Width > 0)
             {
                 IsMaterialized = true;
+                int boardIndex = 0;
                 foreach (var board in frame.Assembly.Boards)
                 {
                     var bvm = new BoardViewModel(board, _selectCmd);
                     parentVM.Children.Add(bvm);
                     Boards.Add(bvm);
+
+                    var p = board.StartOuter;
+                    var nvm = new NodeViewModel(frame, boardIndex, p, _selectCmd, NodeType.FrameCorner);
+                    parentVM.Children.Add(nvm);
+                    Nodes.Add(nvm);
+
+                    boardIndex++;
+                }
+            }
+            else
+            {
+                for (int i = 0; i < contour.Vertices.Count; i++)
+                {
+                    var p = contour.Vertices[i].Position;
+                    var nvm = new NodeViewModel(frame, i, p, _selectCmd, NodeType.FrameCorner);
+                    parentVM.Children.Add(nvm);
+                    Nodes.Add(nvm);
                 }
             }
         }
@@ -92,21 +102,24 @@ public partial class FrameViewModel : SelectableElement
         }
         else if (node is Impost impost)
         {
-            var impVM = new ImpostViewModel(impost, _selectCmd);
-            parentVM.Children.Add(impVM);
-            Imposts.Add(impVM);
+            impost.ReprojectToParent();
 
-            var impContour = impost.GetContour();
-            for (int i = 0; i < impContour.Vertices.Count; i++)
-            {
-                var p = impContour.Vertices[i].Position;
-                var nodeType = (i == 0 || i == impContour.Vertices.Count - 1) ? NodeType.ImpostEnd : NodeType.ImpostSplit;
-                var nvm = new NodeViewModel(impost, i, p, _selectCmd, nodeType);
-                parentVM.Children.Add(nvm);
-                Nodes.Add(nvm);
-            }
 
-            parentVM = impVM;
+                var impVM = new ImpostViewModel(impost, _selectCmd);
+                parentVM.Children.Add(impVM);
+                Imposts.Add(impVM);
+
+                var impContour = impost.GetContour();
+                for (int i = 0; i < impContour.Vertices.Count; i++)
+                {
+                    var p = impContour.Vertices[i].Position;
+                    var nodeType = (i == 0 || i == impContour.Vertices.Count - 1) ? NodeType.ImpostEnd : NodeType.ImpostSplit;
+                    var nvm = new NodeViewModel(impost, i, p, _selectCmd, nodeType);
+                    parentVM.Children.Add(nvm);
+                    Nodes.Add(nvm);
+                }
+
+                parentVM = impVM;
         }
 
         // Рекурсивно идем в детей

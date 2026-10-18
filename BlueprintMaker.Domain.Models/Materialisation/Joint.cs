@@ -17,23 +17,29 @@ public sealed class Joint
     public void SetTypeA(JointEndType type)
     {
         TypeA = type;
-        EnforcePairAndApply();
+        TypeB = type switch
+        {
+            JointEndType.Tenon => JointEndType.Mortise,
+            JointEndType.Mortise => JointEndType.Tenon,
+            _ => JointEndType.Miter
+        };
+        ApplyToBoards();
     }
 
     public void SetTypeB(JointEndType type)
     {
         TypeB = type;
-        EnforcePairAndApply();
+        TypeA = type switch
+        {
+            JointEndType.Tenon => JointEndType.Mortise,
+            JointEndType.Mortise => JointEndType.Tenon,
+            _ => JointEndType.Miter
+        };
+        ApplyToBoards();
     }
 
-    private void EnforcePairAndApply()
+    private void ApplyToBoards()
     {
-        // Синхронизируем вторую сторону
-        if (TypeA == JointEndType.Tenon) TypeB = JointEndType.Mortise;
-        else if (TypeA == JointEndType.Mortise) TypeB = JointEndType.Tenon;
-        else if (TypeA == JointEndType.Miter) TypeB = JointEndType.Miter;
-
-        // Уведомляем доски о смене их краев
         BoardA.ApplyJointTypes(
             BoardA.StartJoint == this ? TypeA : BoardA.StartJointType,
             BoardA.EndJoint == this ? TypeA : BoardA.EndJointType);

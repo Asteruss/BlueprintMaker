@@ -39,10 +39,16 @@
 			<Button Content="Разбить в точке клика" Command="{Binding SplitAtClickCommand}" Padding="10,2"/>
 			<Separator Margin="10,0"/>
 
-			<!-- Инструменты стыков -->
-			<TextBlock Text="Стыки:" VerticalAlignment="Center" Margin="5,0"/>
-			<Button Content="На ус (45°)" Command="{Binding SetJointTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Miter}" Padding="10,2"/>
-			<Button Content="Шип-Паз" Command="{Binding SetJointTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Tenon}" Padding="10,2"/>
+<TextBlock Text="Стыки доски:" VerticalAlignment="Center"/>
+<TextBlock Text="Начало:" VerticalAlignment="Center" Margin="5,0,0,0"/>
+<Button Content="Ус" Command="{Binding SetStartTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Miter}" Padding="10,2"/>
+<Button Content="Шип" Command="{Binding SetStartTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Tenon}" Padding="10,2"/>
+<Button Content="Паз" Command="{Binding SetStartTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Mortise}" Padding="10,2"/>
+
+<TextBlock Text="Конец:" VerticalAlignment="Center" Margin="5,0,0,0"/>
+<Button Content="Ус" Command="{Binding SetEndTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Miter}" Padding="10,2"/>
+<Button Content="Шип" Command="{Binding SetEndTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Tenon}" Padding="10,2"/>
+<Button Content="Паз" Command="{Binding SetEndTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Mortise}" Padding="10,2"/>
 
 			<Separator Margin="10,0"/>
 
@@ -118,9 +124,9 @@
 							<ItemsControl.ItemTemplate>
 								<DataTemplate x:DataType="vm:BoardViewModel">
 									<Path Data="{Binding Geometry}"
-										  Fill="{Binding FillColor}"
-										  Stroke="Black"
-										  StrokeThickness="1"
+										  Fill="Transparent"
+										  Stroke="{Binding FillColor}"
+										  StrokeThickness="2"
 										  PointerPressed="ElementPath_PointerPressed"/>
 								</DataTemplate>
 							</ItemsControl.ItemTemplate>
@@ -149,7 +155,7 @@
 						</ItemsControl>
 
 						<!-- Импосты -->
-						<ItemsControl ItemsSource="{Binding Imposts}" IsVisible="{Binding !IsMaterialized}">
+						<ItemsControl ItemsSource="{Binding Imposts}">
 							<ItemsControl.ItemsPanel>
 								<ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
 							</ItemsControl.ItemsPanel>

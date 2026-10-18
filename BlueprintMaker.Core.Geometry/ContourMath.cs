@@ -235,7 +235,7 @@ public static class ContourMath
 
             // Иначе ищем проекцию точки на сегмент (прямую или дугу)
             var proj = SegmentProjection.Project(curr.Position, next.Position, curr.Bulge, target);
-            if (proj.Distance < 0.01)
+            if (proj.Distance < 0.5)
             {
                 return new Hit { SegmentIndex = i, T = proj.Parameter, Position = target };
             }

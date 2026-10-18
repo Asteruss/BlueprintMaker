@@ -27,7 +27,7 @@ public class Frame : PhysicalElement
     protected override void OnMaterialized()
     {
         // При изменении ширины пересобираем доски
-        Assembly.Rebuild(GetContour(), Width);
+        Assembly.Rebuild(GetContour(), InnerSpace.GetContour(), Width);
     }
 
     public override IReadOnlyList<Contour> GetPhysicalGeometry()
@@ -40,7 +40,7 @@ public class Frame : PhysicalElement
     public void UpdateContour(Contour newContour)
     {
         UpdateLocalContour(newContour);
-        if (Width > 0) Assembly.Rebuild(GetContour(), Width);
+        Assembly.Rebuild(GetContour(), InnerSpace.GetContour(), Width);
     }
 
     public static Frame Create(Contour contour) => new Frame(Guid.NewGuid(), contour);
@@ -49,7 +49,7 @@ public class Frame : PhysicalElement
     {
         if (ContourMath.CalculateSignedArea(vertices) < 0) vertices.Reverse();
         var newContour = Contour.CreateClosed(vertices);
-        if (Width > 0) Assembly.Rebuild(newContour, Width);
+        if (Width > 0) Assembly.Rebuild(GetContour(), InnerSpace.GetContour(), Width);
         return newContour;
     }
 }

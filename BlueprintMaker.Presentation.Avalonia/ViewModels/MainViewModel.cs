@@ -10,6 +10,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Reactive;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 
 namespace BlueprintMaker.Presentation.Avalonia.ViewModels;
 
@@ -18,13 +19,17 @@ public partial class MainViewModel : ReactiveObject
     private readonly Document _document = new();
     private readonly DocumentHistory _history = new();
 
+    // Реактивный поток, который будет дергаться при любом изменении модели
+    private readonly Subject<Unit> _modelChanged = new();
+
     [Reactive] private bool _canUndo;
     [Reactive] private bool _canRedo;
     [Reactive] private string _statusMessage = "Готово";
     [Reactive] private FrameViewModel? _selectedFrame;
+    [Reactive] private Point? _lastClickPoint;
+    [Reactive] private SelectableElement? _selectedElement;
 
     public ObservableCollection<FrameViewModel> Frames { get; } = new();
-    [Reactive] private Point? _lastClickPoint;
 
     public ReactiveCommand<Unit, Unit> CreateWindowCommand { get; }
     public ReactiveCommand<Unit, Unit> CreateWindowTCommand { get; }
@@ -37,28 +42,58 @@ public partial class MainViewModel : ReactiveObject
     public ReactiveCommand<Unit, Unit> InsertMultipleImpostsCommand { get; }
     public ReactiveCommand<Unit, Unit> SplitEqualCommand { get; }
     public ReactiveCommand<Unit, Unit> SplitAtClickCommand { get; }
+    public ReactiveCommand<JointEndType, Unit> SetStartTypeCommand { get; }
+    public ReactiveCommand<JointEndType, Unit> SetEndTypeCommand { get; }
     public ReactiveCommand<SelectableElement, Unit> SelectElementCommand { get; }
     public ReactiveCommand<JointEndType, Unit> SetJointTypeCommand { get; }
-    [Reactive] private SelectableElement? _selectedElement;
+
     public MainViewModel()
     {
         var canUndoObservable = this.WhenAnyValue(x => x.CanUndo);
         var canRedoObservable = this.WhenAnyValue(x => x.CanRedo);
         var canMaterializeObservable = this.WhenAnyValue(x => x.Frames.Count, count => count > 0);
+        var canChangeJoint = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is BoardViewModel);
+        var canChangeSpace = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is LightSpaceViewModel);
+
+        _modelChanged.Subscribe(_ => RefreshGeometry());
 
         CreateWindowCommand = ReactiveCommand.Create(CreateWindow);
         CreateWindowTCommand = ReactiveCommand.Create(CreateTrapezoidWindow);
         CreateWindowHCommand = ReactiveCommand.Create(CreateHexagonWindow);
 
+        SetStartTypeCommand = ReactiveCommand.Create<JointEndType>(type =>
+        {
+            if (SelectedElement is BoardViewModel bvm)
+            {
+                var board = bvm.SourceBoard;
+                var joint = board.StartJoint;
+                if (joint != null)
+                {
+                    if (joint.BoardA == board) joint.SetTypeA(type);
+                    else joint.SetTypeB(type);
+                    _modelChanged.OnNext(Unit.Default); 
+                }
+            }
+        }, canChangeJoint);
+
+        SetEndTypeCommand = ReactiveCommand.Create<JointEndType>(type =>
+        {
+            if (SelectedElement is BoardViewModel bvm)
+            {
+                var board = bvm.SourceBoard;
+                var joint = board.EndJoint;
+                if (joint != null)
+                {
+                    if (joint.BoardA == board) joint.SetTypeA(type);
+                    else joint.SetTypeB(type);
+                    _modelChanged.OnNext(Unit.Default);
+                }
+            }
+        }, canChangeJoint);
+
         SelectElementCommand = ReactiveCommand.Create<SelectableElement>(element =>
         {
-            // Рекурсивно снимаем выделение со всего дерева
-            if (SelectedFrame != null)
-            {
-                DeselectAll(SelectedFrame);
-            }
-
-            // Выделяем только выбранный
+            if (SelectedFrame != null) DeselectAll(SelectedFrame);
             element.IsSelected = true;
             SelectedElement = element;
             StatusMessage = $"Выбран: {element.DisplayName}";
@@ -69,24 +104,46 @@ public partial class MainViewModel : ReactiveObject
             if (SelectedElement is LightSpaceViewModel lsVM)
             {
                 lsVM.SourceSpace.InsertMultipleImposts(3, Core.Geometry.AxisOrientation.Vertical);
-                SelectedFrame?.Refresh();
+                _modelChanged.OnNext(Unit.Default);
                 StatusMessage = "Вставлено 3 импоста";
             }
-            else
+            else StatusMessage = "Выберите световое пространство";
+        }, canChangeSpace);
+
+        SplitAtClickCommand = ReactiveCommand.Create(() =>
+        {
+            if (SelectedElement is WireframeLine line && LastClickPoint != null)
             {
-                StatusMessage = "Выберите световое пространство";
+                _history.Execute(new SplitSegmentCommand(line.SourceElement, line.SegmentIndex, LastClickPoint));
+                _modelChanged.OnNext(Unit.Default);
+                StatusMessage = "Линия разбита в точке клика";
+                LastClickPoint = null;
             }
-        }, this.WhenAnyValue(x => x.SelectedElement).Select(el => el is LightSpaceViewModel));
+            else StatusMessage = "Сначала кликните по линии, чтобы выбрать её";
+        });
+
+        SplitEqualCommand = ReactiveCommand.Create(() =>
+        {
+            if (SelectedElement is WireframeLine line)
+            {
+                _history.Execute(new SplitSegmentCommand(line.SourceElement, line.SegmentIndex, null));
+                _modelChanged.OnNext(Unit.Default);
+                StatusMessage = "Линия разбита поровну";
+            }
+            else StatusMessage = "Выберите линию для разбиения";
+        });
 
         UndoCommand = ReactiveCommand.Create(() =>
         {
             _history.Undo();
+            _modelChanged.OnNext(Unit.Default);
             UpdateHistoryState();
         }, canUndoObservable);
 
         RedoCommand = ReactiveCommand.Create(() =>
         {
             _history.Redo();
+            _modelChanged.OnNext(Unit.Default); // И повтор
             UpdateHistoryState();
         }, canRedoObservable);
 
@@ -94,106 +151,58 @@ public partial class MainViewModel : ReactiveObject
         {
             if (_document.Root != null)
             {
-                _document.Root.Materialize(50);
-                _statusMessage = "Рама материализована (50мм)";
-
-                // Выделяем раму для инструмента стыков
-                if (Frames.Count > 0)
-                    SelectedFrame = Frames[0];
-
+                _document.Root.Materialize(20);
+                StatusMessage = "Рама материализована (20мм)";
+                if (Frames.Count > 0) SelectedFrame = Frames[0];
+                _modelChanged.OnNext(Unit.Default);
                 UpdateHistoryState();
             }
         }, canMaterializeObservable);
-        SplitEqualCommand = ReactiveCommand.Create(() =>
-        {
-            if (SelectedElement is WireframeLine line)
-            {
-                // null означает разбить поровну (по середине)
-                _history.Execute(new SplitSegmentCommand(line.SourceElement, line.SegmentIndex, null));
-                SelectedFrame?.Refresh();
-                StatusMessage = "Линия разбита поровну";
-            }
-            else
-            {
-                StatusMessage = "Выберите линию для разбиения";
-            }
-        });
-
-        SplitAtClickCommand = ReactiveCommand.Create(() =>
-        {
-            if (SelectedElement is WireframeLine line && LastClickPoint != null)
-            {
-                _history.Execute(new SplitSegmentCommand(line.SourceElement, line.SegmentIndex, LastClickPoint));
-                SelectedFrame?.Refresh();
-                StatusMessage = "Линия разбита в точке клика";
-                LastClickPoint = null; // Сбрасываем точку
-            }
-            else
-            {
-                StatusMessage = "Сначала кликните по линии, чтобы выбрать её и запомнить точку";
-            }
-        });
 
         InsertVerticalImpostCommand = ReactiveCommand.Create(() =>
         {
             if (SelectedElement is LightSpaceViewModel lsVM)
             {
                 _history.Execute(new InsertImpostCommand(lsVM.SourceSpace, Core.Geometry.AxisOrientation.Vertical, 0.5));
-                SelectedFrame?.Refresh();
+                _modelChanged.OnNext(Unit.Default);
                 SelectedElement = null;
                 StatusMessage = "Импост вставлен";
             }
-            else
-            {
-                StatusMessage = "Выберите световое пространство для импоста";
-            }
-        }, this.WhenAnyValue(x => x.SelectedElement).Select(el => el is LightSpaceViewModel)); 
+            else StatusMessage = "Выберите световое пространство";
+        }, canChangeSpace);
 
         InsertHorizontalImpostCommand = ReactiveCommand.Create(() =>
         {
             if (SelectedElement is LightSpaceViewModel lsVM)
             {
                 _history.Execute(new InsertImpostCommand(lsVM.SourceSpace, Core.Geometry.AxisOrientation.Horizontal, 0.5));
-                SelectedFrame?.Refresh();
+                _modelChanged.OnNext(Unit.Default);
                 SelectedElement = null;
-
                 StatusMessage = "Импост вставлен";
             }
-            else
-            {
-                StatusMessage = "Выберите световое пространство для импоста";
-            }
-        }, this.WhenAnyValue(x => x.SelectedElement).Select(el => el is LightSpaceViewModel));
+            else StatusMessage = "Выберите световое пространство";
+        }, canChangeSpace);
 
-        // Команда смены стыка
         SetJointTypeCommand = ReactiveCommand.Create<JointEndType>(type =>
         {
             if (SelectedFrame == null) return;
-
             var assembly = SelectedFrame.Assembly;
             for (int i = 0; i < assembly.Joints.Count; i++)
             {
                 assembly.ChangeJoint(i, type);
             }
-
-            // Принудительно перерисовываем раму
-            SelectedFrame.Refresh();
-            _statusMessage = $"Применен стык: {type}";
+            _modelChanged.OnNext(Unit.Default);
+            StatusMessage = $"Применен стык: {type}";
         });
 
         this.WhenAnyValue(x => x.CanUndo, x => x.CanRedo)
-            .Subscribe(_ => RefreshGeometry());
+            .Subscribe(_ => _modelChanged.OnNext(Unit.Default));
     }
 
     private void CreateWindow()
     {
-        var vertices = new Point[]
-        {
-            new(50, 50), new(550, 50), new(550, 450), new(50, 450)
-        };
-
-        var contour = Contour.CreateClosed(new[]
-        {
+        var vertices = new Point[] { new(50, 50), new(550, 50), new(550, 450), new(50, 450) };
+        var contour = Contour.CreateClosed(new[] {
             new ContourVertex(vertices[0]), new ContourVertex(vertices[1]),
             new ContourVertex(vertices[2]), new ContourVertex(vertices[3])
         });
@@ -204,82 +213,66 @@ public partial class MainViewModel : ReactiveObject
         {
             Frames.Add(new FrameViewModel(_document.Root, _history, SelectElementCommand));
             SelectedFrame = Frames[0];
-            SelectedFrame.IsSelected = true; 
+            SelectedFrame.IsSelected = true;
         }
         StatusMessage = "Окно создано";
         UpdateHistoryState();
+        _modelChanged.OnNext(Unit.Default);
     }
+
     private void CreateTrapezoidWindow()
     {
-        // Рассчитываем координаты углов трапеции
-        var vertices = new Point[]
-        {
-        new(150, 50),   // Верхний левый угол (сдвинут вправо)
-        new(450, 50),   // Upper правый угол (сдвинут влевую сторону)
-        new(550, 450),  // Нижний правый угол
-        new(50, 450)    // Нижний левый угол
+        var vertices = new Point[] {
+            new(150, 50), new(450, 50), new(550, 450), new(50, 450)
         };
-
-        var contour = Contour.CreateClosed(new[]
-        {
-        new ContourVertex(vertices[0]), new ContourVertex(vertices[1]),
-        new ContourVertex(vertices[2]), new ContourVertex(vertices[3])
-    });
+        var contour = Contour.CreateClosed(new[] {
+            new ContourVertex(vertices[0]), new ContourVertex(vertices[1]),
+            new ContourVertex(vertices[2]), new ContourVertex(vertices[3])
+        });
 
         _history.Execute(new CreateFrameCommand(_document, contour));
         Frames.Clear();
-
         if (_document.Root != null)
         {
             Frames.Add(new FrameViewModel(_document.Root, _history, SelectElementCommand));
             SelectedFrame = Frames[0];
             SelectedFrame.IsSelected = true;
         }
-
         StatusMessage = "Окно-трапеция создано";
         UpdateHistoryState();
+        _modelChanged.OnNext(Unit.Default);
     }
+
     private void CreateHexagonWindow()
     {
-        // Центр и радиус для правильного шестиугольника
-        double centerX = 300;
-        double centerY = 250;
-        double radius = 200;
-
+        double centerX = 300, centerY = 250, radius = 200;
         var vertices = new Point[6];
-
-        // Шаг угла для 6-угольника равен 60 градусам (PI / 3 радиан)
         for (int i = 0; i < 6; i++)
         {
             double angle = i * Math.PI / 3;
-
-            // Округляем до 2 знаков, чтобы избежать микро-погрешностей double
             double x = Math.Round(centerX + radius * Math.Cos(angle), 2);
             double y = Math.Round(centerY + radius * Math.Sin(angle), 2);
-
             vertices[i] = new Point(x, y);
         }
-
-        var contour = Contour.CreateClosed(new[]
-        {
-        new ContourVertex(vertices[0]), new ContourVertex(vertices[1]),
-        new ContourVertex(vertices[2]), new ContourVertex(vertices[3]),
-        new ContourVertex(vertices[4]), new ContourVertex(vertices[5])
-    });
+        var contour = Contour.CreateClosed(new[] {
+            new ContourVertex(vertices[0]), new ContourVertex(vertices[1]),
+            new ContourVertex(vertices[2]), new ContourVertex(vertices[3]),
+            new ContourVertex(vertices[4]), new ContourVertex(vertices[5])
+        });
 
         _history.Execute(new CreateFrameCommand(_document, contour));
         Frames.Clear();
-
         if (_document.Root != null)
         {
             Frames.Add(new FrameViewModel(_document.Root, _history, SelectElementCommand));
             SelectedFrame = Frames[0];
             SelectedFrame.IsSelected = true;
         }
-
         StatusMessage = "Правильный шестиугольник создан";
         UpdateHistoryState();
+        _modelChanged.OnNext(Unit.Default);
     }
+
     private void UpdateHistoryState()
     {
         CanUndo = _history.CanUndo;

@@ -33,6 +33,7 @@ public partial class MainViewModel : ReactiveObject
     public ReactiveCommand<Unit, Unit> MaterializeCommand { get; }
     public ReactiveCommand<Unit, Unit> InsertVerticalImpostCommand { get; }
     public ReactiveCommand<Unit, Unit> InsertHorizontalImpostCommand { get; }
+    public ReactiveCommand<Unit, Unit> InsertMultipleImpostsCommand { get; }
     public ReactiveCommand<SelectableElement, Unit> SelectElementCommand { get; }
     public ReactiveCommand<JointEndType, Unit> SetJointTypeCommand { get; }
     [Reactive] private SelectableElement? _selectedElement;
@@ -59,6 +60,20 @@ public partial class MainViewModel : ReactiveObject
             SelectedElement = element;
             StatusMessage = $"Выбран: {element.DisplayName}";
         });
+
+        InsertMultipleImpostsCommand = ReactiveCommand.Create(() =>
+        {
+            if (SelectedElement is LightSpaceViewModel lsVM)
+            {
+                lsVM.SourceSpace.InsertMultipleImposts(3, Core.Geometry.AxisOrientation.Vertical);
+                SelectedFrame?.Refresh();
+                StatusMessage = "Вставлено 3 импоста";
+            }
+            else
+            {
+                StatusMessage = "Выберите световое пространство";
+            }
+        }, this.WhenAnyValue(x => x.SelectedElement).Select(el => el is LightSpaceViewModel));
 
         UndoCommand = ReactiveCommand.Create(() =>
         {

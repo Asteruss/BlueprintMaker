@@ -44,6 +44,26 @@ public sealed class LightSpace : WindowNodeBase
         return (space1, space2, impost);
     }
 
+    /// <summary>
+    /// Вставляет N импостов, деля пространство на N+1 равных частей.
+    /// </summary>
+    public void InsertMultipleImposts(int count, AxisOrientation orientation)
+    {
+        if (Children.Count > 0)
+            throw new InvalidOperationException("Пространство уже занято.");
+        if (count <= 0) return;
+
+        // Делим текущее пространство: 1 часть уходит влево, (count) частей вправо
+        double pos = 1.0 / (count + 1);
+        var (space1, space2, impost) = InsertImpost(orientation, pos);
+
+        // Рекурсивно делим оставшееся пространство (space2) на count - 1 частей
+        if (count > 1)
+        {
+            space2.InsertMultipleImposts(count - 1, orientation);
+        }
+    }
+
     public Sash InsertSash()
     {
         if (Children.Count > 0)

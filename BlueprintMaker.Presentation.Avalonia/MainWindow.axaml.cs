@@ -27,11 +27,9 @@ public partial class MainWindow : Window
     {
         if (sender is Control ctrl && ctrl.DataContext is SelectableElement el)
         {
-            // Если кликнули по импосту — начинаем拖拽
             if (el is ImpostViewModel impVM)
             {
                 _draggingImpost = impVM;
-                // Захватываем мышь, чтобы события не терялись при выходе за пределы Path
                 e.Pointer.Capture(ctrl);
             }
 
@@ -56,7 +54,6 @@ public partial class MainWindow : Window
                 var bounds = parent.GetContour().BoundingBox;
                 double relativePos = 0;
 
-                // Вычисляем долю в зависимости от ориентации
                 if (impost.Rule is ImpostPlacementRule r)
                 {
                     if (r.Orientation == AxisOrientation.Vertical)

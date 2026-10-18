@@ -34,6 +34,7 @@
 			<Button Content="Материализовать" Command="{Binding MaterializeCommand}" Padding="10,2"/>
 			<Button Content="Вставить вертикальный импост" Command="{Binding InsertVerticalImpostCommand}" Padding="10,2"/>
 			<Button Content="Вставить горизонтальный импост" Command="{Binding InsertHorizontalImpostCommand}" Padding="10,2"/>
+			<Button Content="Вставить 3 Импоста" Command="{Binding InsertMultipleImpostsCommand}" Padding="10,2"/>
 			<Separator Margin="10,0"/>
 
 			<!-- Инструменты стыков -->

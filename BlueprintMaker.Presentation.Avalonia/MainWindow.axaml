@@ -167,6 +167,32 @@
 								</DataTemplate>
 							</ItemsControl.ItemTemplate>
 						</ItemsControl>
+
+						<!-- Узлы (Nodes) -->
+						<ItemsControl ItemsSource="{Binding Nodes}">
+							<ItemsControl.ItemsPanel>
+								<ItemsPanelTemplate>
+									<Canvas />
+								</ItemsPanelTemplate>
+							</ItemsControl.ItemsPanel>
+							<ItemsControl.Styles>
+								<Style Selector="ItemsControl > ContentPresenter">
+									<Setter Property="Canvas.Left" Value="{ReflectionBinding X}"/>
+									<Setter Property="Canvas.Top" Value="{ReflectionBinding Y}"/>
+								</Style>
+							</ItemsControl.Styles>
+							<ItemsControl.ItemTemplate>
+								<DataTemplate x:DataType="vm:NodeViewModel">
+									<Ellipse Width="12" Height="12"
+											 Fill="{Binding FillColor}"
+											 Stroke="Black"
+											 StrokeThickness="1"
+											 Margin="-6,-6,0,0"
+											 PointerPressed="Node_PointerPressed"/>
+								</DataTemplate>
+							</ItemsControl.ItemTemplate>
+						</ItemsControl>
+
 					</Panel>
 				</DataTemplate>
 			</ItemsControl.ItemTemplate>

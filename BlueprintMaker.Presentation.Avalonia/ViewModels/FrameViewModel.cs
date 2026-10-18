@@ -61,8 +61,15 @@ public partial class FrameViewModel : SelectableElement
                 var line = new WireframeLine(from, to, _selectCmd);
                 parentVM.Children.Add(line);
                 Lines.Add(line);
-            }
 
+            }
+            for (int i = 0; i < contour.Vertices.Count; i++)
+            {
+                var p = contour.Vertices[i].Position;
+                var nvm = new NodeViewModel(frame, i, p, _selectCmd, NodeType.FrameCorner);
+                parentVM.Children.Add(nvm);
+                Nodes.Add(nvm);
+            }
             // Доски рамы
             if (frame.Width > 0)
             {
@@ -87,6 +94,18 @@ public partial class FrameViewModel : SelectableElement
             var impVM = new ImpostViewModel(impost, _selectCmd);
             parentVM.Children.Add(impVM);
             Imposts.Add(impVM);
+
+            var impContour = impost.GetContour();
+            for (int i = 0; i < impContour.Vertices.Count; i++)
+            {
+                var p = impContour.Vertices[i].Position;
+                var nodeType = (i == 0 || i == impContour.Vertices.Count - 1) ? NodeType.ImpostEnd : NodeType.ImpostSplit;
+
+                var nvm = new NodeViewModel(impost, i, p, _selectCmd, nodeType);
+                parentVM.Children.Add(nvm);
+                Nodes.Add(nvm);
+            }
+
             parentVM = impVM;
         }
 

@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.VisualTree;
+using Avalonia.Media.TextFormatting.Unicode;
 using BlueprintMaker.Core.Geometry;
 using BlueprintMaker.Domain.Models.Rules;
 using BlueprintMaker.Presentation.Avalonia.ViewModels;
@@ -12,13 +12,13 @@ namespace BlueprintMaker.Presentation.Avalonia;
 public partial class MainWindow : Window
 {
     private ImpostViewModel? _draggingImpost;
+    private NodeViewModel? _draggingNode;
 
     public MainWindow()
     {
         InitializeComponent();
         DataContext = new MainViewModel();
 
-        // Подписываемся на движение мыши и отпускание на уровне окна
         this.PointerMoved += MainWindow_PointerMoved;
         this.PointerReleased += MainWindow_PointerReleased;
     }
@@ -30,12 +30,23 @@ public partial class MainWindow : Window
             if (el is ImpostViewModel impVM)
             {
                 _draggingImpost = impVM;
-                e.Pointer.Capture(ctrl);
             }
 
-            // Также выделяем элемент
             if (el.SelectCommand != null)
                 el.SelectCommand.Execute(el).Subscribe(_ => { }, ex => Console.WriteLine(ex.Message));
+
+            e.Handled = true;
+        }
+    }
+
+    private void Node_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is Control ctrl && ctrl.DataContext is NodeViewModel nodeVM)
+        {
+            _draggingNode = nodeVM;
+
+            // Выделяем узел
+            nodeVM.SelectCommand?.Execute(nodeVM).Subscribe(_ => { });
 
             e.Handled = true;
         }
@@ -61,30 +72,59 @@ public partial class MainWindow : Window
                     else
                         relativePos = bounds.Height > 0 ? (pos.Y - bounds.MinY) / bounds.Height : 0.5;
 
-                    // Меняем положение в Домене
                     impost.UpdatePosition(relativePos);
 
-                    // Мгновенно перерисовываем дерево и геометрию
                     if (DataContext is MainViewModel mvm && mvm.SelectedFrame != null)
-                    {
                         mvm.SelectedFrame.Refresh();
-                    }
                 }
             }
+        }
+
+        if (_draggingNode != null)
+        {
+            var pos = e.GetPosition(DrawingCanvas);
+            var corePos = new Core.Geometry.Point(pos.X, pos.Y);
+
+            if (_draggingNode.NodeType == NodeType.ImpostEnd)
+            {
+                var parent = _draggingNode.Element.Parent;
+                if (parent != null)
+                {
+                    var boundary = parent.GetContour();
+                    double minDist = 20.0;
+                    Core.Geometry.Point? snappedPos = null; // Делаем nullable
+
+                    for (int i = 0; i < boundary.Vertices.Count; i++)
+                    {
+                        var from = boundary.Vertices[i];
+                        var to = boundary.Vertices[(i + 1) % boundary.Vertices.Count];
+                        var proj = SegmentProjection.Project(from.Position, to.Position, from.Bulge, corePos);
+
+                        if (proj.Distance < minDist)
+                        {
+                            minDist = proj.Distance;
+                            snappedPos = proj.ClosestPoint;
+                        }
+                    }
+
+                    if (snappedPos == null) return;
+
+                    corePos = snappedPos.Value;
+                }
+            }
+
+            _draggingNode.Element.MoveNode(_draggingNode.Index, corePos);
+
+            if (DataContext is MainViewModel mvm2 && mvm2.SelectedFrame != null)
+                mvm2.SelectedFrame.Refresh();
         }
     }
 
     private void MainWindow_PointerReleased(object? sender, PointerReleasedEventArgs e)
     {
-        if (_draggingImpost != null)
-        {
-            // Отпускаем захват мыши
-            if (e.Pointer.Captured is Control ctrl)
-                e.Pointer.Capture(null);
+        _draggingImpost = null;
+        _draggingNode = null;
 
-            _draggingImpost = null;
-
-            // В будущем здесь нужно создать команду MoveImpostCommand для Undo/Redo
-        }
+        // В будущем здесь нужно создать Undo-команду (MoveNodeCommand)
     }
 }

@@ -21,7 +21,7 @@ public partial class ImpostViewModel : SelectableElement
         _geometry = impost.GetContour()?.ToAvaloniaGeometry() ?? new StreamGeometry();
     }
 
-    public IBrush StrokeColor => IsSelected ? Brushes.Blue : Brushes.Green;
+    public IBrush StrokeColor => IsSelected ? Brushes.Blue : Brushes.Black;
     public double StrokeThickness => GeometryConstants.DisplayWidth;
 
     // Курсор для перетаскивания

@@ -1,0 +1,115 @@
+<Window xmlns="https://github.com/avaloniaui"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		xmlns:vm="using:BlueprintMaker.Presentation.Avalonia.ViewModels"
+		xmlns:views="using:BlueprintMaker.Presentation.Avalonia.Views"
+		xmlns:mat="using:BlueprintMaker.Domain.Models.Materialisation"
+		mc:Ignorable="d"
+		x:Class="BlueprintMaker.Presentation.Avalonia.MainWindow"
+		x:DataType="vm:MainViewModel"
+		Title="Конструктор"
+		WindowStartupLocation="CenterOwner"
+		WindowState="Maximized">
+
+	<Design.DataContext>
+		<vm:MainViewModel/>
+	</Design.DataContext>
+
+	<Grid RowDefinitions="Auto, Auto, *" ColumnDefinitions="*, 5*, *">
+
+		<!-- Меню -->
+		<Menu Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3">
+			<MenuItem Header="Файл">
+				<MenuItem Header="Создать окно" Command="{Binding CreateWindowCommand}"/>
+			</MenuItem>
+		</Menu>
+
+		<!-- Панель инструментов -->
+		<StackPanel Grid.Row="1" Orientation="Horizontal" Margin="5" Spacing="5" Grid.Column="0" Grid.ColumnSpan="3">
+			<Button Content="Undo" Command="{Binding UndoCommand}" Padding="10,2"/>
+			<Button Content="Redo" Command="{Binding RedoCommand}" Padding="10,2"/>
+			<Button Content="Материализовать (50)" Command="{Binding MaterializeCommand}" Padding="10,2"/>
+
+			<Separator Margin="10,0"/>
+
+			<!-- Инструменты стыков -->
+			<TextBlock Text="Стыки:" VerticalAlignment="Center" Margin="5,0"/>
+			<Button Content="На ус (45°)" Command="{Binding SetJointTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Miter}" Padding="10,2"/>
+			<Button Content="Шип-Паз" Command="{Binding SetJointTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Tenon}" Padding="10,2"/>
+
+			<Separator Margin="10,0"/>
+
+			<TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+		</StackPanel>
+
+		<!-- Холст -->
+		<ItemsControl Grid.Row="2" Background="LightGray" ItemsSource="{Binding Frames}" Grid.Column="1">
+    <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+            <Canvas HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="LightGray"/>
+        </ItemsPanelTemplate>
+    </ItemsControl.ItemsPanel>
+
+    <ItemsControl.Styles>
+        <Style Selector="ItemsControl > ContentPresenter">
+            <Setter Property="Canvas.Left" Value="0"/>
+            <Setter Property="Canvas.Top" Value="0"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+        </Style>
+    </ItemsControl.Styles>
+
+    <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:FrameViewModel">
+            <Panel HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MinWidth="1500" MinHeight="1500">
+
+                <!-- Скелет (скрыт, если IsMaterialized = true) -->
+                <ItemsControl ItemsSource="{Binding Lines}" IsVisible="{Binding !IsMaterialized}"
+                              HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.Styles>
+                        <Style Selector="ItemsControl > ContentPresenter">
+                            <Setter Property="Canvas.Left" Value="0"/>
+                            <Setter Property="Canvas.Top" Value="0"/>
+                        </Style>
+                    </ItemsControl.Styles>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:WireframeLine">
+                            <Path Data="{Binding Geometry}" Stroke="Black" StrokeThickness="1"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Материализованные доски (скрыты, пока IsMaterialized = false) -->
+                <ItemsControl ItemsSource="{Binding Boards}" IsVisible="{Binding IsMaterialized}"
+                              HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.Styles>
+                        <Style Selector="ItemsControl > ContentPresenter">
+                            <Setter Property="Canvas.Left" Value="0"/>
+                            <Setter Property="Canvas.Top" Value="0"/>
+                        </Style>
+                    </ItemsControl.Styles>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:BoardViewModel">
+                            <Path Data="{Binding Geometry}" Fill="SaddleBrown" Stroke="Black" StrokeThickness="0.5"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+            </Panel>
+        </DataTemplate>
+    </ItemsControl.ItemTemplate>
+</ItemsControl>
+
+	</Grid>
+</Window>

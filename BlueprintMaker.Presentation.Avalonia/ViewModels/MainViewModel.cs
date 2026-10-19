@@ -38,10 +38,11 @@ public partial class MainViewModel : ReactiveObject
     public ReactiveCommand<Unit, Unit> CreateWindowHCommand { get; }
     public ReactiveCommand<Unit, Unit> UndoCommand { get; }
     public ReactiveCommand<Unit, Unit> RedoCommand { get; }
-    public ReactiveCommand<Unit, Unit> MaterializeCommand { get; }
+    public ReactiveCommand<decimal, Unit> MaterializeCommand { get; }
     public ReactiveCommand<Unit, Unit> InsertVerticalImpostCommand { get; }
     public ReactiveCommand<Unit, Unit> InsertHorizontalImpostCommand { get; }
-    public ReactiveCommand<Unit, Unit> InsertMultipleImpostsCommand { get; }
+    public ReactiveCommand<decimal, Unit> InsertMultipleVerticalImpostsCommand { get; }
+    public ReactiveCommand<decimal, Unit> InsertMultipleHorizontalImpostsCommand { get; }
     public ReactiveCommand<Unit, Unit> SplitEqualCommand { get; }
     public ReactiveCommand<Unit, Unit> SplitAtClickCommand { get; }
     public ReactiveCommand<JointEndType, Unit> SetStartTypeCommand { get; }
@@ -78,7 +79,7 @@ public partial class MainViewModel : ReactiveObject
                 {
                     if (joint.BoardA == board) joint.SetTypeA(type);
                     else joint.SetTypeB(type);
-                    _modelChanged.OnNext(Unit.Default); 
+                    _modelChanged.OnNext(Unit.Default);
                 }
             }
         }, canChangeJoint);
@@ -106,16 +107,30 @@ public partial class MainViewModel : ReactiveObject
             StatusMessage = $"Выбран: {element.DisplayName}";
         });
 
-        InsertMultipleImpostsCommand = ReactiveCommand.Create(() =>
+        InsertMultipleVerticalImpostsCommand = ReactiveCommand.Create<decimal>(countDecimal =>
         {
             if (SelectedElement is LightSpaceViewModel lsVM)
             {
-                lsVM.SourceSpace.InsertMultipleImposts(3, Core.Geometry.AxisOrientation.Vertical);
+                int count = (int)countDecimal;
+                lsVM.SourceSpace.InsertMultipleImposts(count, AxisOrientation.Vertical);
                 _modelChanged.OnNext(Unit.Default);
-                StatusMessage = "Вставлено 3 импоста";
+                StatusMessage = $"Вставлено {count} импостов";
             }
             else StatusMessage = "Выберите световое пространство";
         }, canChangeSpace);
+
+        InsertMultipleHorizontalImpostsCommand = ReactiveCommand.Create<decimal>(countDecimal =>
+        {
+            if (SelectedElement is LightSpaceViewModel lsVM)
+            {
+                int count = (int)countDecimal;
+                lsVM.SourceSpace.InsertMultipleImposts(count, AxisOrientation.Horizontal);
+                _modelChanged.OnNext(Unit.Default);
+                StatusMessage = $"Вставлено {count} импостов";
+            }
+            else StatusMessage = "Выберите световое пространство";
+        }, canChangeSpace);
+
 
         SplitAtClickCommand = ReactiveCommand.Create(() =>
         {
@@ -172,15 +187,15 @@ public partial class MainViewModel : ReactiveObject
         RedoCommand = ReactiveCommand.Create(() =>
         {
             _history.Redo();
-            _modelChanged.OnNext(Unit.Default); // И повтор
+            _modelChanged.OnNext(Unit.Default);
             UpdateHistoryState();
         }, canRedoObservable);
 
-        MaterializeCommand = ReactiveCommand.Create(() =>
+        MaterializeCommand = ReactiveCommand.Create<decimal>(size =>
         {
             if (_document.Root != null)
             {
-                _document.Root.Materialize(20);
+                _document.Root.Materialize((double)size);
                 StatusMessage = "Рама материализована (20мм)";
                 if (Frames.Count > 0) SelectedFrame = Frames[0];
                 _modelChanged.OnNext(Unit.Default);
@@ -321,11 +336,11 @@ public partial class MainViewModel : ReactiveObject
         element.IsSelected = false;
         foreach (var child in element.Children)
             DeselectAll(child);
-        
+
         if (element is ImpostViewModel imp)
             foreach (var seg in imp.Segments)
                 DeselectAll(seg);
-            
-        
+
+
     }
 }

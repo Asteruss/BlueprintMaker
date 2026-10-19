@@ -16,7 +16,7 @@
 		<vm:MainViewModel/>
 	</Design.DataContext>
 
-	<Grid RowDefinitions="Auto, Auto, *" ColumnDefinitions="*, 4*, *">
+	<Grid RowDefinitions="Auto, Auto, *" ColumnDefinitions="*, 4*, 1.5*">
 
 		<!-- Меню -->
 		<Menu Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3">
@@ -32,26 +32,11 @@
 			<Button Content="Undo" Command="{Binding UndoCommand}" Padding="10,2"/>
 			<Button Content="Redo" Command="{Binding RedoCommand}" Padding="10,2"/>
 			<CheckBox Content="Включить узлы" IsChecked="{Binding IsNodeVisible}" Padding="10,2"/>
-			<Button Content="Материализовать" Command="{Binding MaterializeCommand}" Padding="10,2"/>
-			<Button Content="Вставить вертикальный импост" Command="{Binding InsertVerticalImpostCommand}" Padding="10,2"/>
-			<Button Content="Вставить горизонтальный импост" Command="{Binding InsertHorizontalImpostCommand}" Padding="10,2"/>
-			<Button Content="Вставить 3 Импоста" Command="{Binding InsertMultipleImpostsCommand}" Padding="10,2"/>
-			<Button Content="Разбить поровну" Command="{Binding SplitEqualCommand}" Padding="10,2"/>
-			<Button Content="Разбить в точке клика" Command="{Binding SplitAtClickCommand}" Padding="10,2"/>
-			<Button Content="Разбить поровну" Command="{Binding SplitImpostEqualCommand}" Padding="10,2"/>
-			<Button Content="Разбить в точке клика" Command="{Binding SplitImpostAtClickCommand}" Padding="10,2"/>
+
+
 			<Separator Margin="10,0"/>
 
-			<TextBlock Text="Стыки доски:" VerticalAlignment="Center"/>
-			<TextBlock Text="Начало:" VerticalAlignment="Center" Margin="5,0,0,0"/>
-			<Button Content="Ус" Command="{Binding SetStartTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Miter}" Padding="10,2"/>
-			<Button Content="Шип" Command="{Binding SetStartTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Tenon}" Padding="10,2"/>
-			<Button Content="Паз" Command="{Binding SetStartTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Mortise}" Padding="10,2"/>
 
-			<TextBlock Text="Конец:" VerticalAlignment="Center" Margin="5,0,0,0"/>
-			<Button Content="Ус" Command="{Binding SetEndTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Miter}" Padding="10,2"/>
-			<Button Content="Шип" Command="{Binding SetEndTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Tenon}" Padding="10,2"/>
-			<Button Content="Паз" Command="{Binding SetEndTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Mortise}" Padding="10,2"/>
 
 			<Separator Margin="10,0"/>
 
@@ -191,7 +176,7 @@
 						</ItemsControl>
 
 						<!-- Узлы (Nodes) -->
-						<ItemsControl ItemsSource="{Binding Nodes}">
+						<ItemsControl ItemsSource="{Binding Nodes}" IsVisible="{Binding $parent[Grid].((vm:MainViewModel)DataContext).IsNodeVisible}">
 							<ItemsControl.ItemsPanel>
 								<ItemsPanelTemplate>
 									<Canvas />
@@ -220,5 +205,121 @@
 			</ItemsControl.ItemTemplate>
 		</ItemsControl>
 
+		<ScrollViewer Grid.Row="2" Grid.Column="2" Margin="5">
+			<ContentControl Content="{Binding SelectedElement}">
+				<ContentControl.DataTemplates>
+					<!--Wireframe-->
+					<DataTemplate DataType="vm:WireframeLine">
+						<StackPanel Spacing="5">
+							<TextBlock Text="Контур рамы" FontWeight="Bold"/>
+
+							<Button Content="Разбить поровну" Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).SplitEqualCommand}" Padding="10,2"/>
+							<Button Content="Разбить в точке клика" Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).SplitAtClickCommand}" Padding="10,2"/>
+						</StackPanel>
+					</DataTemplate>
+					<!--Node-->
+					<DataTemplate DataType="vm:NodeViewModel">
+					</DataTemplate>
+					<!--LightSpace-->
+					<DataTemplate DataType="vm:LightSpaceViewModel">
+						<StackPanel Spacing="5">
+							<TextBlock Text="Световое пространство" FontWeight="Bold"/>
+							<Button Content="Вставить верт. импост"
+									Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).InsertVerticalImpostCommand}"
+									HorizontalAlignment="Stretch"/>
+							<Button Content="Вставить гор. импост"
+									Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).InsertHorizontalImpostCommand}"
+									HorizontalAlignment="Stretch"/>
+							<StackPanel Orientation="Horizontal" Spacing="5" Margin="10, 2">
+								<NumericUpDown x:Name="ImpostsCountPicker1"
+											   Value="2"
+											   Minimum="1"
+											   Maximum="10"
+											   FormatString="0"
+											   ParsingNumberStyle="Integer"/>
+								<Button Content="Вставить n вертикальных импостов"
+										Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).InsertMultipleVerticalImpostsCommand}"
+										CommandParameter="{Binding #ImpostsCountPicker1.Value}"
+										HorizontalAlignment="Stretch"/>
+							</StackPanel>
+							<StackPanel Orientation="Horizontal" Spacing="5" Margin="10, 2">
+								<NumericUpDown x:Name="ImpostsCountPicker2"
+											   Value="2"
+											   Minimum="1"
+											   Maximum="10"
+											   FormatString="0"
+											   ParsingNumberStyle="Integer"/>
+								<Button Content="Вставить n горизонтальных импостов"
+										Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).InsertMultipleHorizontalImpostsCommand}"
+										CommandParameter="{Binding #ImpostsCountPicker2.Value}"
+										HorizontalAlignment="Stretch"/>
+							</StackPanel>
+
+						</StackPanel>
+					</DataTemplate>
+					<!--Board-->
+					<DataTemplate DataType="vm:BoardViewModel">
+						<StackPanel Spacing="5">
+							<StackPanel.Styles>
+								<Style Selector="Button.start">
+									<Setter Property="Command"
+											Value="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).SetStartTypeCommand}"/>
+								</Style>
+								<Style Selector="Button.end">
+									<Setter Property="Command"
+											Value="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).SetEndTypeCommand}"/>
+								</Style>
+							</StackPanel.Styles>
+							<TextBlock Text="Стыки доски:" FontWeight="Bold"/>
+							<TextBlock Text="Начало:" VerticalAlignment="Center" Margin="5,0,0,0"/>
+							<StackPanel Orientation="Horizontal" Spacing="5">
+								<Button Classes="start" Content="Ус" CommandParameter="{x:Static mat:JointEndType.Miter}" Padding="10,2"/>
+								<Button Classes="start" Content="Шип" CommandParameter="{x:Static mat:JointEndType.Tenon}" Padding="10,2"/>
+								<Button Classes="start" Content="Паз"  CommandParameter="{x:Static mat:JointEndType.Mortise}" Padding="10,2"/>
+							</StackPanel>
+							<TextBlock Text="Конец:" VerticalAlignment="Center" Margin="5,0,0,0"/>
+							<StackPanel Orientation="Horizontal" Spacing="5">
+								<Button Classes="end" Content="Ус"  CommandParameter="{x:Static mat:JointEndType.Miter}" Padding="10,2"/>
+								<Button Classes="end" Content="Шип" CommandParameter="{x:Static mat:JointEndType.Tenon}" Padding="10,2"/>
+								<Button Classes="end" Content="Паз" CommandParameter="{x:Static mat:JointEndType.Mortise}" Padding="10,2"/>
+							</StackPanel>
+
+
+
+						</StackPanel>
+					</DataTemplate>
+					<!--Frame-->
+					<DataTemplate DataType="vm:FrameViewModel">
+						<StackPanel Spacing="5">
+							<TextBlock Text="Рама" FontWeight="Bold"/>
+							<Grid ColumnDefinitions="*,2*">
+								<NumericUpDown x:Name="MatSize"
+											   Value="20"
+											   Minimum="5"
+											   Maximum="50"
+											   ParsingNumberStyle="Integer"
+											   Grid.Column="0"/>
+
+								<Button Content="Материализовать" 
+										Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).MaterializeCommand}"
+										CommandParameter="{Binding #MatSize.Value}"
+										Grid.Column="1"/>
+							</Grid>
+						</StackPanel>
+					</DataTemplate>
+
+					<!--Imposts-->
+					<DataTemplate DataType="vm:ImpostSegment">
+						<StackPanel Spacing="5">
+							<TextBlock Text="Контур импоста" FontWeight="Bold"/>
+
+							<Button Content="Разбить поровну" Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).SplitImpostEqualCommand}"/>
+							<Button Content="Разбить в точке клика" Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).SplitImpostAtClickCommand}"/>
+						</StackPanel>
+
+					</DataTemplate>
+				</ContentControl.DataTemplates>
+			</ContentControl>
+		</ScrollViewer>
 	</Grid>
 </Window>

@@ -239,9 +239,8 @@ public static class ContourMath
                 return new Hit { SegmentIndex = i, T = proj.Parameter, Position = target };
             }
         }
-        return null; 
+        return null;
     }
-
 
     /// <summary>
     /// Разрезает замкнутый контур открытой линией (импостом) на две половины
@@ -250,6 +249,150 @@ public static class ContourMath
     {
         if (cutter.Vertices.Count < 2) return (null, null);
         return SliceWithPolyline(parent.Vertices, parent.IsClosed, cutter.Vertices);
+    }
+
+    /// <summary>
+    /// Разрезает контур импостом шириной offsetA + offsetB: первая часть отступает от оси на offsetA,
+    /// вторая на offsetB. Края считаются точным смещением ломаной (расстояние до каждого сегмента ровно d)
+    /// и обрезаются по реальному пересечению с контуром родителя.
+    /// </summary>
+    public static (Contour? first, Contour? second) SliceContourWithOffset(
+        Contour parent, Contour cutter, double offsetA, double offsetB)
+    {
+        if (cutter.Vertices.Count < 2) return (null, null);
+
+        bool hasOffset = Math.Abs(offsetA) > 0.0001 || Math.Abs(offsetB) > 0.0001;
+        if (!hasOffset) return SliceContour(parent, cutter);
+
+        var pv = parent.Vertices;
+
+        // 1. Убираем дубли и упорядочиваем ломаную по ходу контура
+        var c = new List<ContourVertex>();
+        foreach (var v in cutter.Vertices)
+            if (c.Count == 0 || c[c.Count - 1].Position.DistanceTo(v.Position) > 0.001)
+                c.Add(v);
+        if (c.Count < 2) return (null, null);
+
+        var hA = FindHit(pv, parent.IsClosed, c[0].Position);
+        var hB = FindHit(pv, parent.IsClosed, c[c.Count - 1].Position);
+        if (hA == null || hB == null) return (null, null);
+
+        if (hA.Value.SegmentIndex > hB.Value.SegmentIndex ||
+           (hA.Value.SegmentIndex == hB.Value.SegmentIndex && hA.Value.T > hB.Value.T))
+            c = ReversePolyline(c);
+
+        // 2. Продлеваем ось и строим точные смещённые линии
+        var ext = ExtendPolyline(c, 10000.0).Select(v => v.Position).ToList();
+        var lineA = ExactOffset(ext, -offsetA);   // сторона первой части
+        var lineB = ExactOffset(ext, offsetB);    // сторона второй части
+
+        // 3. Обрезаем линии по контуру родителя
+        var a = TrimToParent(lineA, pv);
+        var b = TrimToParent(lineB, pv);
+        if (a == null || b == null) return (null, null);
+
+        // 4. Режем родителя каждой линией; первая часть — от линии A, вторая — от линии B
+        //    (та же конвенция path1/path2, что была в SliceWithPolyline)
+        var (a1, _) = SliceWithPolyline(pv, parent.IsClosed, a);
+        var (_, b2) = SliceWithPolyline(pv, parent.IsClosed, b);
+        if (a1 == null || b2 == null) return (null, null);
+
+        return (a1, b2);
+    }
+
+    private static Point SegmentNormal(Point p, Point q)
+    {
+        double dx = q.X - p.X, dy = q.Y - p.Y;
+        double l = Math.Sqrt(dx * dx + dy * dy);
+        if (l < 1e-12) return new Point(0, 0);
+        return new Point(-dy / l, dx / l);
+    }
+
+    /// <summary>
+    /// Точное смещение ломаной на d (знак задаёт сторону, нормаль сегмента (-dy, dx)).
+    /// Внутренняя вершина = пересечение смещённых соседних прямых, поэтому расстояние
+    /// до каждого сегмента ровно |d|, без ограничений на излом.
+    /// </summary>
+    public static List<Point> ExactOffset(IReadOnlyList<Point> pts, double d)
+    {
+        int m = pts.Count - 1;
+        var res = new List<Point>(pts.Count);
+        if (m < 1) { res.AddRange(pts); return res; }
+
+        var n = new Point[m];
+        for (int i = 0; i < m; i++) n[i] = SegmentNormal(pts[i], pts[i + 1]);
+
+        res.Add(new Point(pts[0].X + n[0].X * d, pts[0].Y + n[0].Y * d));
+
+        for (int k = 1; k < m; k++)
+        {
+            var a1 = new Point(pts[k - 1].X + n[k - 1].X * d, pts[k - 1].Y + n[k - 1].Y * d);
+            var a2 = new Point(pts[k].X + n[k - 1].X * d, pts[k].Y + n[k - 1].Y * d);
+            var b1 = new Point(pts[k].X + n[k].X * d, pts[k].Y + n[k].Y * d);
+            var b2 = new Point(pts[k + 1].X + n[k].X * d, pts[k + 1].Y + n[k].Y * d);
+
+            res.Add(LineIntersection(a1, a2, b1, b2) ?? b1);   // параллельные — просто сдвиг
+        }
+
+        res.Add(new Point(pts[m].X + n[m - 1].X * d, pts[m].Y + n[m - 1].Y * d));
+        return res;
+    }
+
+    private static Point? LineIntersection(Point a1, Point a2, Point b1, Point b2)
+    {
+        double d1x = a2.X - a1.X, d1y = a2.Y - a1.Y;
+        double d2x = b2.X - b1.X, d2y = b2.Y - b1.Y;
+        double den = d1x * d2y - d1y * d2x;
+        if (Math.Abs(den) < 1e-9) return null;
+        double t = ((b1.X - a1.X) * d2y - (b1.Y - a1.Y) * d2x) / den;
+        return new Point(a1.X + d1x * t, a1.Y + d1y * t);
+    }
+
+    /// <summary>
+    /// Обрезает продлённую ломаную по контуру родителя: берутся первое и последнее пересечения.
+    /// </summary>
+    private static List<ContourVertex>? TrimToParent(IReadOnlyList<Point> line, IReadOnlyList<ContourVertex> parent)
+    {
+        var hits = new List<(double key, Point p)>();   // key = индекс сегмента линии + t
+        for (int i = 0; i < line.Count - 1; i++)
+        {
+            for (int j = 0; j < parent.Count; j++)
+            {
+                var q1 = parent[j].Position;
+                var q2 = parent[(j + 1) % parent.Count].Position;
+                if (SegmentIntersect(line[i], line[i + 1], q1, q2, out double t, out var p))
+                    hits.Add((i + t, p));
+            }
+        }
+        if (hits.Count < 2) return null;
+        hits.Sort((x, y) => x.key.CompareTo(y.key));
+
+        var first = hits[0];
+        var last = hits[hits.Count - 1];
+
+        var res = new List<ContourVertex> { new ContourVertex(first.p, 0) };
+        for (int k = 1; k < line.Count - 1; k++)
+            if (k > first.key && k < last.key)
+                res.Add(new ContourVertex(line[k], 0));
+        res.Add(new ContourVertex(last.p, 0));
+
+        return res.Count >= 2 ? res : null;
+    }
+
+    private static bool SegmentIntersect(Point a1, Point a2, Point b1, Point b2, out double t, out Point p)
+    {
+        t = 0; p = default;
+        double d1x = a2.X - a1.X, d1y = a2.Y - a1.Y;
+        double d2x = b2.X - b1.X, d2y = b2.Y - b1.Y;
+        double den = d1x * d2y - d1y * d2x;
+        if (Math.Abs(den) < 1e-9) return false;
+
+        t = ((b1.X - a1.X) * d2y - (b1.Y - a1.Y) * d2x) / den;
+        double u = ((b1.X - a1.X) * d1y - (b1.Y - a1.Y) * d1x) / den;
+        if (t < 0 || t > 1 || u < 0 || u > 1) return false;
+
+        p = new Point(a1.X + d1x * t, a1.Y + d1y * t);
+        return true;
     }
 
     private static (Contour? first, Contour? second) SliceWithPolyline(
@@ -340,6 +483,7 @@ public static class ContourMath
         }
         return vertices;
     }
+
     public static List<ContourVertex> OffsetPolyline(IReadOnlyList<ContourVertex> vertices, double distance)
     {
         var result = new List<ContourVertex>();
@@ -376,54 +520,26 @@ public static class ContourMath
 
     /// <summary>
     /// Создает замкнутую полосу (брус) вокруг открытого контура (центральной линии).
-    /// Расширяется в обе стороны на halfWidth.
+    /// Расширяется в обе стороны на width/2. Использует то же ExactOffset, что и
+    /// SliceContourWithOffset, поэтому доска и края света совпадают.
     /// </summary>
     public static IReadOnlyList<ContourVertex> OffsetBandCenter(IReadOnlyList<ContourVertex> vertices, double width)
     {
         double halfWidth = width / 2.0;
-        var leftSide = new List<ContourVertex>();
-        var rightSide = new List<ContourVertex>();
+        var pts = vertices.Select(v => v.Position).ToList();
 
-        for (int i = 0; i < vertices.Count; i++)
-        {
-            var curr = vertices[i];
-            var prev = i > 0 ? vertices[i - 1] : curr;
-            var next = i < vertices.Count - 1 ? vertices[i + 1] : curr;
+        // Те же знаки, что были раньше: left = -n * half, right = +n * half
+        var left = ExactOffset(pts, -halfWidth);
+        var right = ExactOffset(pts, halfWidth);
 
-            var dirPrev = new Point(curr.Position.X - prev.Position.X, curr.Position.Y - prev.Position.Y);
-            var dirNext = new Point(next.Position.X - curr.Position.X, next.Position.Y - curr.Position.Y);
-            var dirSum = new Point(dirPrev.X + dirNext.X, dirPrev.Y + dirNext.Y);
-            double len = Math.Sqrt(dirSum.X * dirSum.X + dirSum.Y * dirSum.Y);
-
-            Point normal;
-            if (len > 0.001)
-            {
-                normal = new Point(-dirSum.Y / len, dirSum.X / len);
-            }
-            else
-            {
-                double dx = next.Position.X - curr.Position.X;
-                double dy = next.Position.Y - curr.Position.Y;
-                double l = Math.Sqrt(dx * dx + dy * dy);
-                normal = l > 0.001 ? new Point(-dy / l, dx / l) : new Point(0, 0);
-            }
-
-            leftSide.Add(new ContourVertex(
-                new Point(curr.Position.X - normal.X * halfWidth, curr.Position.Y - normal.Y * halfWidth),
-                curr.Bulge));
-
-            rightSide.Add(new ContourVertex(
-                new Point(curr.Position.X + normal.X * halfWidth, curr.Position.Y + normal.Y * halfWidth),
-                curr.Bulge));
-        }
-
-        var result = new List<ContourVertex>(leftSide);
-        rightSide.Reverse();
-        result.AddRange(rightSide);
+        var result = new List<ContourVertex>(vertices.Count * 2);
+        for (int i = 0; i < left.Count; i++)
+            result.Add(new ContourVertex(left[i], vertices[i].Bulge));
+        for (int i = right.Count - 1; i >= 0; i--)
+            result.Add(new ContourVertex(right[i], vertices[i].Bulge));
 
         return result;
     }
-
 
     /// <summary>
     /// Отсекает часть многоугольника subject, которая выходит за пределы многоугольника clipWindow
@@ -496,5 +612,42 @@ public static class ContourMath
 
         double t = ((p3.X - p1.X) * d2y - (p3.Y - p1.Y) * d2x) / denom;
         return new Point(p1.X + d1x * t, p1.Y + d1y * t);
+    }
+
+    public static IReadOnlyList<ContourVertex> ExtendPolyline(IReadOnlyList<ContourVertex> verts, double extendDistance)
+    {
+        if (verts.Count < 2 || extendDistance <= 0) return verts;
+
+        var result = new List<ContourVertex>(verts);
+
+        // Удлиняем в конце (по направлению последнего сегмента)
+        var last = verts[verts.Count - 1].Position;
+        var prevLast = verts[verts.Count - 2].Position;
+        var dirEnd = new Point(last.X - prevLast.X, last.Y - prevLast.Y);
+        double lenEnd = Math.Sqrt(dirEnd.X * dirEnd.X + dirEnd.Y * dirEnd.Y);
+        if (lenEnd > 0.001)
+        {
+            var unitDirEnd = new Point(dirEnd.X / lenEnd, dirEnd.Y / lenEnd);
+            var newLast = new Point(
+                last.X + unitDirEnd.X * extendDistance,
+                last.Y + unitDirEnd.Y * extendDistance);
+            result[result.Count - 1] = new ContourVertex(newLast, verts[verts.Count - 1].Bulge);
+        }
+
+        // Удлиняем в начале (по направлению первого сегмента, в обратную сторону)
+        var first = verts[0].Position;
+        var nextFirst = verts[1].Position;
+        var dirStart = new Point(first.X - nextFirst.X, first.Y - nextFirst.Y);
+        double lenStart = Math.Sqrt(dirStart.X * dirStart.X + dirStart.Y * dirStart.Y);
+        if (lenStart > 0.001)
+        {
+            var unitDirStart = new Point(dirStart.X / lenStart, dirStart.Y / lenStart);
+            var newFirst = new Point(
+                first.X + unitDirStart.X * extendDistance,
+                first.Y + unitDirStart.Y * extendDistance);
+            result[0] = new ContourVertex(newFirst, verts[0].Bulge);
+        }
+
+        return result;
     }
 }

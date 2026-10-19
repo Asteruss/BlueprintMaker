@@ -102,6 +102,7 @@ public partial class FrameViewModel : SelectableElement
         }
         else if (node is Impost impost)
         {
+            impost.ReprojectToParent();
             var impVM = new ImpostViewModel(impost, _selectCmd);
             parentVM.Children.Add(impVM);
             Imposts.Add(impVM);

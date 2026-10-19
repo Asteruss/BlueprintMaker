@@ -9,12 +9,12 @@ namespace BlueprintMaker.Domain.Models.Elements;
 
 public sealed class Impost : PhysicalElement
 {
-    public Board? Board { get; private set; }
-
+    public ImpostAssembly Assembly { get; }
     // Конструктор без ширины
     internal Impost(Guid id, IWindowNode parent, AxisOrientation orientation, double relativePosition)
         : base(id, localContour: null, rule: new ImpostPlacementRule(orientation, relativePosition))
     {
+        Assembly = new ImpostAssembly(this);
     }
 
     public void UpdatePosition(double newRelativePosition)
@@ -25,36 +25,13 @@ public sealed class Impost : PhysicalElement
 
     protected override void OnMaterialized()
     {
-        var centerContour = GetContour();
-        var bandVerts = ContourMath.OffsetBandCenter(centerContour.Vertices, Width);
-
-        var parentContour = Parent?.GetContour();
-
-        if (parentContour != null)
-        {
-            var clippedVerts = ContourMath.ClipPolygon(bandVerts, parentContour.Vertices);
-            if (clippedVerts.Count >= 3)
-            {
-                Board = new Board(Width)
-                {
-                    PhysicalContour = Contour.CreateClosed(clippedVerts)
-                };
-                return;
-            }
-        }
-
-        // Фолбэк, если обрезка не удалась
-        Board = new Board(Width)
-        {
-            PhysicalContour = Contour.CreateClosed(bandVerts)
-        };
+        Assembly.Rebuild(GetContour(), Width, Parent?.GetContour());
     }
 
     public override IReadOnlyList<Contour> GetPhysicalGeometry()
     {
-        if (Width > 0 && Board != null)
-            return new List<Contour> { Board.PhysicalContour };
-
+        if (Width > 0 && Assembly.Board != null)
+            return new List<Contour> { Assembly.Board.PhysicalContour };
         return base.GetPhysicalGeometry();
     }
 

@@ -27,12 +27,10 @@ public partial class ImpostViewModel : SelectableElement
 
         if (SourceImpost.Width > 0) 
         {
-            var physGeometry = SourceImpost.GetPhysicalGeometry();
-            if (physGeometry != null && physGeometry.Count > 0)
+            if (SourceImpost.Width > 0)
             {
-                // Используем доменный Board
-                if (SourceImpost.Board != null)
-                    Boards.Add(new BoardViewModel(SourceImpost.Board, SelectCommand));
+                if (SourceImpost.Assembly.Board != null)
+                    Boards.Add(new BoardViewModel(SourceImpost.Assembly.Board, SelectCommand));
             }
         }
         else 

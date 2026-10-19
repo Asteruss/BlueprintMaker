@@ -21,7 +21,8 @@ public sealed class SplitHalfRule : IDerivationRule
         var parentContour = parent.GetContour();
         var impostContour = _impost.GetContour();
 
-        var (path1, path2) = ContourMath.SliceContour(parentContour, impostContour);
+        var offset = _impost.Width / 2.0;
+        var (path1, path2) = ContourMath.SliceContourWithOffset(parentContour, impostContour, offset, offset);
 
         if (path1 == null || path2 == null)
             return parentContour;

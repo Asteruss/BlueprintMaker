@@ -58,7 +58,7 @@ public partial class MainViewModel : ReactiveObject
         var canMaterializeObservable = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is SelectableElement);
         var canChangeJoint = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is BoardViewModel);
         var canChangeSpace = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is LightSpaceViewModel);
-        var canSplitImpost = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is ImpostViewModel);
+        var canSplitImpost = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is ImpostSegment);
         var canSplitFrmae = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is WireframeLine);
 
 
@@ -142,23 +142,24 @@ public partial class MainViewModel : ReactiveObject
 
         SplitImpostEqualCommand = ReactiveCommand.Create(() =>
         {
-            if (SelectedElement is ImpostViewModel impVM)
+            if (SelectedElement is ImpostSegment seg && seg.SourceImpost is Impost imp)
             {
-                _history.Execute(new SplitImpostCommand(impVM.SourceImpost, null));
+                _history.Execute(new SplitImpostCommand(imp, seg.SegmentIndex, null));
                 _modelChanged.OnNext(Unit.Default);
-                StatusMessage = "Импост разбит поровну";
+                StatusMessage = "Сегмент импоста разбит поровну";
             }
         }, canSplitImpost);
 
         SplitImpostAtClickCommand = ReactiveCommand.Create(() =>
         {
-            if (SelectedElement is ImpostViewModel impVM && LastClickPoint != null)
+            if (SelectedElement is ImpostSegment seg && seg.SourceImpost is Impost imp && LastClickPoint != null)
             {
-                _history.Execute(new SplitImpostCommand(impVM.SourceImpost, LastClickPoint));
+                _history.Execute(new SplitImpostCommand(imp, seg.SegmentIndex, LastClickPoint));
                 LastClickPoint = null;
                 _modelChanged.OnNext(Unit.Default);
-                StatusMessage = "Импост разбит в точке клика";
+                StatusMessage = "Сегмент импоста разбит в точке клика";
             }
+
         }, canSplitImpost);
 
         UndoCommand = ReactiveCommand.Create(() =>
@@ -319,8 +320,12 @@ public partial class MainViewModel : ReactiveObject
     {
         element.IsSelected = false;
         foreach (var child in element.Children)
-        {
             DeselectAll(child);
-        }
+        
+        if (element is ImpostViewModel imp)
+            foreach (var seg in imp.Segments)
+                DeselectAll(seg);
+            
+        
     }
 }

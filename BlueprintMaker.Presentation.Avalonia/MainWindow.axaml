@@ -170,11 +170,22 @@
 							</ItemsControl.Styles>
 							<ItemsControl.ItemTemplate>
 								<DataTemplate x:DataType="vm:ImpostViewModel">
-									<Path Data="{Binding Geometry}"
-										  Stroke="{Binding StrokeColor}"
-										  StrokeThickness="{Binding StrokeThickness}"
-										  Cursor="{Binding DragCursor}"
-										  PointerPressed="ElementPath_PointerPressed"/>
+									<ItemsControl ItemsSource="{Binding Segments}">
+										<ItemsControl.ItemsPanel>
+											<ItemsPanelTemplate>
+												<Grid/>
+											</ItemsPanelTemplate>
+										</ItemsControl.ItemsPanel>
+										<ItemsControl.ItemTemplate>
+											<DataTemplate x:DataType="vm:ImpostSegment">
+												<Path Data="{Binding Geometry}"
+													  Stroke="{Binding StrokeColor}"
+													  StrokeThickness="{Binding StrokeThickness}"
+													  Cursor="{Binding DragCursor}"
+													  PointerPressed="ElementPath_PointerPressed"/>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
 								</DataTemplate>
 							</ItemsControl.ItemTemplate>
 						</ItemsControl>

@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media.TextFormatting.Unicode;
 using BlueprintMaker.Core.Geometry;
+using BlueprintMaker.Domain.Models.Elements;
 using BlueprintMaker.Domain.Models.Rules;
 using BlueprintMaker.Presentation.Avalonia.ViewModels;
 using System;
@@ -12,7 +13,7 @@ namespace BlueprintMaker.Presentation.Avalonia;
 
 public partial class MainWindow : Window
 {
-    private ImpostViewModel? _draggingImpost;
+    private Impost? _draggingImpost;
     private NodeViewModel? _draggingNode;
 
     public MainWindow()
@@ -34,9 +35,13 @@ public partial class MainWindow : Window
                 mvm.LastClickPoint = new CorePoint(pos.X, pos.Y);
             }
 
-            if (el is ImpostViewModel impVM)
+            if (el is ImpostSegment impSeg)
             {
-                _draggingImpost = impVM;
+                var pos = e.GetPosition(DrawingCanvas);
+                if (DataContext is MainViewModel mvm2)
+                    mvm2.LastClickPoint = new CorePoint(pos.X, pos.Y);
+
+                _draggingImpost = impSeg.SourceImpost as Impost;
             }
 
             if (el.SelectCommand != null)
@@ -64,7 +69,7 @@ public partial class MainWindow : Window
         if (_draggingImpost != null)
         {
             var pos = e.GetPosition(DrawingCanvas);
-            var impost = _draggingImpost.SourceImpost;
+            var impost = _draggingImpost;
             var parent = impost.Parent;
 
             if (parent != null)

@@ -155,22 +155,39 @@
 							</ItemsControl.Styles>
 							<ItemsControl.ItemTemplate>
 								<DataTemplate x:DataType="vm:ImpostViewModel">
-									<ItemsControl ItemsSource="{Binding Segments}">
-										<ItemsControl.ItemsPanel>
-											<ItemsPanelTemplate>
-												<Grid/>
-											</ItemsPanelTemplate>
-										</ItemsControl.ItemsPanel>
-										<ItemsControl.ItemTemplate>
-											<DataTemplate x:DataType="vm:ImpostSegment">
-												<Path Data="{Binding Geometry}"
-													  Stroke="{Binding StrokeColor}"
-													  StrokeThickness="{Binding StrokeThickness}"
-													  Cursor="{Binding DragCursor}"
-													  PointerPressed="ElementPath_PointerPressed"/>
-											</DataTemplate>
-										</ItemsControl.ItemTemplate>
-									</ItemsControl>
+									<Panel>
+										<!-- Скелет (Сегменты) -->
+										<ItemsControl ItemsSource="{Binding Segments}" IsVisible="{Binding !IsMaterialized}">
+											<ItemsControl.ItemsPanel>
+												<ItemsPanelTemplate><Grid/></ItemsPanelTemplate>
+											</ItemsControl.ItemsPanel>
+											<ItemsControl.ItemTemplate>
+												<DataTemplate x:DataType="vm:ImpostSegment">
+													<Path Data="{Binding Geometry}"
+														  Stroke="{Binding StrokeColor}"
+														  StrokeThickness="{Binding StrokeThickness}"
+														  Cursor="{Binding DragCursor}"
+														  PointerPressed="ElementPath_PointerPressed"/>
+												</DataTemplate>
+											</ItemsControl.ItemTemplate>
+										</ItemsControl>
+
+										<!-- Доски (Материализованный брус) -->
+										<ItemsControl ItemsSource="{Binding Boards}" IsVisible="{Binding IsMaterialized}">
+											<ItemsControl.ItemsPanel>
+												<ItemsPanelTemplate><Grid/></ItemsPanelTemplate>
+											</ItemsControl.ItemsPanel>
+											<ItemsControl.ItemTemplate>
+												<DataTemplate x:DataType="vm:BoardViewModel">
+													<Path Data="{Binding Geometry}"
+														  Fill="Transparent"
+														  Stroke="Black"
+														  StrokeThickness="1"
+														  PointerPressed="ElementPath_PointerPressed"/>
+												</DataTemplate>
+											</ItemsControl.ItemTemplate>
+										</ItemsControl>
+									</Panel>
 								</DataTemplate>
 							</ItemsControl.ItemTemplate>
 						</ItemsControl>
@@ -300,7 +317,7 @@
 											   ParsingNumberStyle="Integer"
 											   Grid.Column="0"/>
 
-								<Button Content="Материализовать" 
+								<Button Content="Материализовать"
 										Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).MaterializeCommand}"
 										CommandParameter="{Binding #MatSize.Value}"
 										Grid.Column="1"/>
@@ -308,13 +325,27 @@
 						</StackPanel>
 					</DataTemplate>
 
-					<!--Imposts-->
+					<!--ImpostSegment-->
 					<DataTemplate DataType="vm:ImpostSegment">
 						<StackPanel Spacing="5">
 							<TextBlock Text="Контур импоста" FontWeight="Bold"/>
 
 							<Button Content="Разбить поровну" Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).SplitImpostEqualCommand}"/>
 							<Button Content="Разбить в точке клика" Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).SplitImpostAtClickCommand}"/>
+							<Separator Margin="0, 5"/>
+							<Grid ColumnDefinitions="*,2*">
+								<NumericUpDown x:Name="MatSize"
+											   Value="20"
+											   Minimum="5"
+											   Maximum="50"
+											   ParsingNumberStyle="Integer"
+											   Grid.Column="0"/>
+
+								<Button Content="Материализовать"
+										Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).MaterializeCommand}"
+										CommandParameter="{Binding #MatSize.Value}"
+										Grid.Column="1"/>
+							</Grid>
 						</StackPanel>
 
 					</DataTemplate>

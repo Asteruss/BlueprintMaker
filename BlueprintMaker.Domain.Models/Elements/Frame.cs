@@ -43,6 +43,8 @@ public class Frame : PhysicalElement
         Assembly.Rebuild(GetContour(), InnerSpace.GetContour(), Width);
     }
 
+
+
     public static Frame Create(Contour contour) => new Frame(Guid.NewGuid(), contour);
 
     protected override Contour RebuildContour(List<ContourVertex> vertices)

@@ -11,23 +11,38 @@ public partial class ImpostViewModel : SelectableElement
     public Impost SourceImpost { get; }
 
     public ObservableCollection<ImpostSegment> Segments { get; } = new();
-
+    public ObservableCollection<BoardViewModel> Boards { get; } = new();
+    public bool IsMaterialized => SourceImpost.Width > 0;
     public ImpostViewModel(Impost impost, ReactiveCommand<SelectableElement, Unit> selectCmd) : base(selectCmd)
     {
         SourceImpost = impost;
         DisplayName = "Импост";
-        UpdateSegments();
+        UpdateState();
     }
 
-    public void UpdateSegments()
+    public void UpdateState()
     {
         Segments.Clear();
-        var contour = SourceImpost.GetContour();
-        var verts = contour.Vertices;
+        Boards.Clear();
 
-        for (int i = 0; i < verts.Count - 1; i++)
+        if (SourceImpost.Width > 0) 
         {
-            Segments.Add(new ImpostSegment(SourceImpost, i, verts[i], verts[i + 1], SelectCommand));
+            var physGeometry = SourceImpost.GetPhysicalGeometry();
+            if (physGeometry != null && physGeometry.Count > 0)
+            {
+                // Используем доменный Board
+                if (SourceImpost.Board != null)
+                    Boards.Add(new BoardViewModel(SourceImpost.Board, SelectCommand));
+            }
+        }
+        else 
+        {
+            var contour = SourceImpost.GetContour();
+            var verts = contour.Vertices;
+            for (int i = 0; i < verts.Count - 1; i++)
+            {
+                Segments.Add(new ImpostSegment(SourceImpost, i, verts[i], verts[i + 1], SelectCommand));
+            }
         }
     }
 

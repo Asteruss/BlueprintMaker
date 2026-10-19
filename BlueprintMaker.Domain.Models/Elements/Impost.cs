@@ -28,6 +28,22 @@ public sealed class Impost : PhysicalElement
         var centerContour = GetContour();
         var bandVerts = ContourMath.OffsetBandCenter(centerContour.Vertices, Width);
 
+        var parentContour = Parent?.GetContour();
+
+        if (parentContour != null)
+        {
+            var clippedVerts = ContourMath.ClipPolygon(bandVerts, parentContour.Vertices);
+            if (clippedVerts.Count >= 3)
+            {
+                Board = new Board(Width)
+                {
+                    PhysicalContour = Contour.CreateClosed(clippedVerts)
+                };
+                return;
+            }
+        }
+
+        // Фолбэк, если обрезка не удалась
         Board = new Board(Width)
         {
             PhysicalContour = Contour.CreateClosed(bandVerts)

@@ -423,4 +423,78 @@ public static class ContourMath
 
         return result;
     }
+
+
+    /// <summary>
+    /// Отсекает часть многоугольника subject, которая выходит за пределы многоугольника clipWindow
+    /// </summary>
+    public static IReadOnlyList<ContourVertex> ClipPolygon(IReadOnlyList<ContourVertex> subject, IReadOnlyList<ContourVertex> clipWindow)
+    {
+        var outputList = new List<ContourVertex>(subject);
+
+        // Итерируемся по ребрам окна отсечения
+        for (int i = 0; i < clipWindow.Count; i++)
+        {
+            var clipEdgeStart = clipWindow[i].Position;
+            var clipEdgeEnd = clipWindow[(i + 1) % clipWindow.Count].Position;
+
+            var inputList = outputList;
+            outputList = new List<ContourVertex>();
+
+            if (inputList.Count == 0) break;
+
+            // Нормаль ребра отсечения (внутрь многоугольника)
+            double dx = clipEdgeEnd.X - clipEdgeStart.X;
+            double dy = clipEdgeEnd.Y - clipEdgeStart.Y;
+            // Предполагаем обход по часовой стрелке, поэтому нормаль (-dy, dx)
+            double nx = -dy;
+            double ny = dx;
+
+            for (int j = 0; j < inputList.Count; j++)
+            {
+                var current = inputList[j];
+                var prev = inputList[(j - 1 + inputList.Count) % inputList.Count];
+
+                bool currentInside = IsInside(current.Position, clipEdgeStart, nx, ny);
+                bool prevInside = IsInside(prev.Position, clipEdgeStart, nx, ny);
+
+                if (currentInside)
+                {
+                    if (!prevInside)
+                    {
+                        // Заходим внутрь: добавляем точку пересечения
+                        outputList.Add(new ContourVertex(Intersect(prev.Position, current.Position, clipEdgeStart, clipEdgeEnd), 0));
+                    }
+                    outputList.Add(current);
+                }
+                else if (prevInside)
+                {
+                    // Выходим наружу: добавляем точку пересечения
+                    outputList.Add(new ContourVertex(Intersect(prev.Position, current.Position, clipEdgeStart, clipEdgeEnd), 0));
+                }
+            }
+        }
+
+        return outputList;
+    }
+
+    private static bool IsInside(Point test, Point edgeStart, double nx, double ny)
+    {
+        double px = test.X - edgeStart.X;
+        double py = test.Y - edgeStart.Y;
+        return (px * nx + py * ny) >= -0.5;
+    }
+
+    private static Point Intersect(Point p1, Point p2, Point p3, Point p4)
+    {
+        // Пересечение отрезков p1-p2 и p3-p4
+        double d1x = p2.X - p1.X, d1y = p2.Y - p1.Y;
+        double d2x = p4.X - p3.X, d2y = p4.Y - p3.Y;
+
+        double denom = d1x * d2y - d1y * d2x;
+        if (Math.Abs(denom) < 1e-9) return p2; // Параллельны
+
+        double t = ((p3.X - p1.X) * d2y - (p3.Y - p1.Y) * d2x) / denom;
+        return new Point(p1.X + d1x * t, p1.Y + d1y * t);
+    }
 }

@@ -102,9 +102,6 @@ public partial class FrameViewModel : SelectableElement
         }
         else if (node is Impost impost)
         {
-            impost.ReprojectToParent();
-
-
             var impVM = new ImpostViewModel(impost, _selectCmd);
             parentVM.Children.Add(impVM);
             Imposts.Add(impVM);
@@ -116,13 +113,13 @@ public partial class FrameViewModel : SelectableElement
                 var nodeType = (i == 0 || i == impContour.Vertices.Count - 1) ? NodeType.ImpostEnd : NodeType.ImpostSplit;
                 var nvm = new NodeViewModel(impost, i, p, _selectCmd, nodeType);
                 parentVM.Children.Add(nvm);
-                Nodes.Add(nvm);
+                if (impost.Width == 0)
+                    Nodes.Add(nvm);
             }
 
             parentVM = impVM;
         }
-
-        // Рекурсивно идем в детей
+        // Рекурсивно идем по детям
         foreach (var child in node.Children)
         {
             BuildTree(child, parentVM);

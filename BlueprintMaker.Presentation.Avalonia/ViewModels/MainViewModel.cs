@@ -191,15 +191,32 @@ public partial class MainViewModel : ReactiveObject
             UpdateHistoryState();
         }, canRedoObservable);
 
-        MaterializeCommand = ReactiveCommand.Create<decimal>(size =>
+        MaterializeCommand = ReactiveCommand.Create<decimal>(sizeInput =>
         {
             if (_document.Root != null)
             {
-                _document.Root.Materialize((double)size);
-                StatusMessage = "Рама материализована (20мм)";
-                if (Frames.Count > 0) SelectedFrame = Frames[0];
+                double size = (sizeInput < 0 || sizeInput > 50) ? 20 : (double)sizeInput;
+                if (SelectedElement is ImpostViewModel impVM)
+                {
+                    impVM.SourceImpost.Materialize(size);
+                    StatusMessage = $"Импост материализован ({size}мм)";
+                }
+                else if (SelectedElement is ImpostSegment impSeg && impSeg.SourceImpost is Impost imp)
+                {
+                    imp.Materialize(size);
+                    StatusMessage = $"Импост материализован ({size}мм)";
+                }
+                else
+                {
+                    _document.Root.Materialize(size);
+                    if (Frames.Count > 0) SelectedFrame = Frames[0];
+                    StatusMessage = $"Рама материализована ({size}мм)";
+                }
+
                 _modelChanged.OnNext(Unit.Default);
                 UpdateHistoryState();
+
+
             }
         }, canMaterializeObservable);
 

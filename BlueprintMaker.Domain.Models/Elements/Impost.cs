@@ -31,15 +31,28 @@ public sealed class Impost : PhysicalElement
 
             // Ищем ближайшие точки на новом контуре для наших концов
             var newStart = FindClosestPointOnContour(parentContour, currentVertices[0].Position);
-            var newEnd = FindClosestPointOnContour(parentContour, currentVertices[1].Position);
+            var newEnd = FindClosestPointOnContour(parentContour, currentVertices[currentVertices.Count - 1].Position);
 
-            var newVertices = new List<ContourVertex>
+            double distStart = currentVertices[0].Position.DistanceTo(newStart);
+            double distEnd = currentVertices[currentVertices.Count - 1].Position.DistanceTo(newEnd);
+
+            if (distStart > 0.5 || distEnd > 0.5)
             {
-                new ContourVertex(newStart, currentVertices[0].Bulge),
-                new ContourVertex(newEnd, currentVertices[1].Bulge)
-            };
+                var newVertices = new List<ContourVertex>
+                {
+                    // Обновленный старт
+                    new(newStart, currentVertices[0].Bulge)
+                };
 
-            UpdateLocalContour(RebuildContour(newVertices));
+                for (int i = 1; i < currentVertices.Count - 1; i++)
+                    newVertices.Add(currentVertices[i]);
+                
+
+                // Обновленный конец
+                newVertices.Add(new ContourVertex(newEnd, currentVertices[currentVertices.Count - 1].Bulge));
+
+                UpdateLocalContour(RebuildContour(newVertices));
+            }
         }
     }
 

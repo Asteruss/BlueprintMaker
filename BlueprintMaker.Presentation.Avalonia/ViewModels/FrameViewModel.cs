@@ -105,21 +105,21 @@ public partial class FrameViewModel : SelectableElement
             impost.ReprojectToParent();
 
 
-                var impVM = new ImpostViewModel(impost, _selectCmd);
-                parentVM.Children.Add(impVM);
-                Imposts.Add(impVM);
+            var impVM = new ImpostViewModel(impost, _selectCmd);
+            parentVM.Children.Add(impVM);
+            Imposts.Add(impVM);
 
-                var impContour = impost.GetContour();
-                for (int i = 0; i < impContour.Vertices.Count; i++)
-                {
-                    var p = impContour.Vertices[i].Position;
-                    var nodeType = (i == 0 || i == impContour.Vertices.Count - 1) ? NodeType.ImpostEnd : NodeType.ImpostSplit;
-                    var nvm = new NodeViewModel(impost, i, p, _selectCmd, nodeType);
-                    parentVM.Children.Add(nvm);
-                    Nodes.Add(nvm);
-                }
+            var impContour = impost.GetContour();
+            for (int i = 0; i < impContour.Vertices.Count; i++)
+            {
+                var p = impContour.Vertices[i].Position;
+                var nodeType = (i == 0 || i == impContour.Vertices.Count - 1) ? NodeType.ImpostEnd : NodeType.ImpostSplit;
+                var nvm = new NodeViewModel(impost, i, p, _selectCmd, nodeType);
+                parentVM.Children.Add(nvm);
+                Nodes.Add(nvm);
+            }
 
-                parentVM = impVM;
+            parentVM = impVM;
         }
 
         // Рекурсивно идем в детей

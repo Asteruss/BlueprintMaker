@@ -222,69 +222,99 @@ public static class ContourMath
         return sweep >= 0 ? (t >= 0 && t <= sweep) : (t <= 0 && t >= sweep);
     }
 
-    private static Hit FindHit(IReadOnlyList<ContourVertex> vertices, Point target)
+    private static Hit? FindHit(IReadOnlyList<ContourVertex> vertices, bool isClosed, Point target)
     {
         for (int i = 0; i < vertices.Count; i++)
         {
+            if (!isClosed && i == vertices.Count - 1) break;
             var curr = vertices[i];
             var next = vertices[(i + 1) % vertices.Count];
 
-            // Если точка идеально совпадает с вершиной
             if (curr.Position == target)
                 return new Hit { SegmentIndex = i, T = 0.0, Position = target };
 
-            // Иначе ищем проекцию точки на сегмент (прямую или дугу)
             var proj = SegmentProjection.Project(curr.Position, next.Position, curr.Bulge, target);
-            if (proj.Distance < 0.5)
+            if (proj.Distance < 0.5) // Допуск 0.5 мм
             {
                 return new Hit { SegmentIndex = i, T = proj.Parameter, Position = target };
             }
         }
-        throw new InvalidOperationException("Точка импоста не найдена на границе родителя!");
+        return null; 
     }
 
 
     /// <summary>
     /// Разрезает замкнутый контур открытой линией (импостом) на две половины
     /// </summary>
-    public static (Contour first, Contour second) SliceContour(Contour parent, Contour cutter)
+    public static (Contour? first, Contour? second) SliceContour(Contour parent, Contour cutter)
     {
-        if (!parent.IsClosed) throw new ArgumentException("Родитель должен быть замкнут.");
-        if (cutter.IsClosed || cutter.Vertices.Count < 2) throw new ArgumentException("Резак должен быть открытой линией.");
+        if (cutter.Vertices.Count < 2) return (null, null);
+        return SliceWithPolyline(parent.Vertices, parent.IsClosed, cutter.Vertices);
+    }
 
-        Point start = cutter.Vertices[0].Position;
-        Point end = cutter.Vertices[1].Position;
+    private static (Contour? first, Contour? second) SliceWithPolyline(
+        IReadOnlyList<ContourVertex> vertices, bool isClosed, IReadOnlyList<ContourVertex> cutterVerts)
+    {
+        // Убираем нулевые отрезки (дубли подряд идущих точек)
+        var cutter = new List<ContourVertex>();
+        foreach (var v in cutterVerts)
+        {
+            if (cutter.Count == 0 || cutter[cutter.Count - 1].Position.DistanceTo(v.Position) > 0.001)
+                cutter.Add(v);
+        }
+        if (cutter.Count < 2) return (null, null);
 
-        var hitA = FindHit(parent.Vertices, start);
-        var hitB = FindHit(parent.Vertices, end);
+        var hitA = FindHit(vertices, isClosed, cutter[0].Position);
+        var hitB = FindHit(vertices, isClosed, cutter[cutter.Count - 1].Position);
+        if (hitA == null || hitB == null) return (null, null);
 
-        // Упорядочиваем попадания, чтобы hitA шел первым по обходу контура
-        if (hitA.SegmentIndex > hitB.SegmentIndex ||
-           (hitA.SegmentIndex == hitB.SegmentIndex && hitA.T > hitB.T))
+        // Упорядочиваем по ходу контура; если надо, разворачиваем ломаную
+        if (hitA.Value.SegmentIndex > hitB.Value.SegmentIndex ||
+           (hitA.Value.SegmentIndex == hitB.Value.SegmentIndex && hitA.Value.T > hitB.Value.T))
         {
             (hitA, hitB) = (hitB, hitA);
-            (start, end) = (end, start);
+            cutter = ReversePolyline(cutter);
         }
 
-        // Собираем первую половину: от hitA до hitB по родительским вершинам
+        int m = cutter.Count - 1;          // индекс последней точки ломаной
+        var start = cutter[0].Position;
+        var end = cutter[m].Position;
+
+        // Половина 1: start -> по родителю до end -> обратно по ломаной к start
         var path1 = new List<ContourVertex> { new ContourVertex(start, 0) };
-        for (int i = hitA.SegmentIndex + 1; i <= hitB.SegmentIndex; i++)
-        {
-            path1.Add(parent.Vertices[i % parent.Vertices.Count]);
-        }
-        path1.Add(new ContourVertex(end, 0));
-        var first = Contour.CreateClosed(path1); // CreateClosed автоматически замкнет конец на начало (линией импоста)
+        for (int i = hitA.Value.SegmentIndex + 1; i <= hitB.Value.SegmentIndex; i++)
+            path1.Add(vertices[i % vertices.Count]);
 
-        // Собираем вторую половину: от hitB до hitA по оставшимся вершинам
+        path1.Add(new ContourVertex(end, -cutter[m - 1].Bulge));
+        for (int k = m - 1; k >= 1; k--)
+            path1.Add(new ContourVertex(cutter[k].Position, -cutter[k - 1].Bulge));
+
+        // Половина 2: end -> по родителю до start -> вперёд по ломаной к end
         var path2 = new List<ContourVertex> { new ContourVertex(end, 0) };
-        for (int i = hitB.SegmentIndex + 1; i < parent.Vertices.Count + hitA.SegmentIndex + 1; i++)
-        {
-            path2.Add(parent.Vertices[i % parent.Vertices.Count]);
-        }
-        path2.Add(new ContourVertex(start, 0));
-        var second = Contour.CreateClosed(path2);
+        for (int i = hitB.Value.SegmentIndex + 1; i < vertices.Count + hitA.Value.SegmentIndex + 1; i++)
+            path2.Add(vertices[i % vertices.Count]);
 
-        return (first, second);
+        path2.Add(new ContourVertex(start, cutter[0].Bulge));
+        for (int k = 1; k <= m - 1; k++)
+            path2.Add(new ContourVertex(cutter[k].Position, cutter[k].Bulge));
+
+        if (path1.Count < 3 || path2.Count < 3) return (null, null);
+
+        return (Contour.CreateClosed(EnsureClockwise(path1)),
+                Contour.CreateClosed(EnsureClockwise(path2)));
+    }
+
+    // Разворот ломаной: bulge отрезка меняет знак и переходит к новой начальной точке отрезка
+    private static List<ContourVertex> ReversePolyline(List<ContourVertex> src)
+    {
+        int m = src.Count - 1;
+        var res = new List<ContourVertex>(src.Count);
+        for (int k = 0; k <= m; k++)
+        {
+            double bulge = k < m ? -src[m - k - 1].Bulge : 0;
+            res.Add(new ContourVertex(src[m - k].Position, bulge));
+        }
+        return res;
     }
 
     /// <summary>

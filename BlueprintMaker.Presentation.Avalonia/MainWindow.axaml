@@ -31,24 +31,27 @@
 		<WrapPanel Grid.Row="1" Orientation="Horizontal" Margin="5"  Grid.Column="0" Grid.ColumnSpan="3">
 			<Button Content="Undo" Command="{Binding UndoCommand}" Padding="10,2"/>
 			<Button Content="Redo" Command="{Binding RedoCommand}" Padding="10,2"/>
+			<CheckBox Content="Включить узлы" IsChecked="{Binding IsNodeVisible}" Padding="10,2"/>
 			<Button Content="Материализовать" Command="{Binding MaterializeCommand}" Padding="10,2"/>
 			<Button Content="Вставить вертикальный импост" Command="{Binding InsertVerticalImpostCommand}" Padding="10,2"/>
 			<Button Content="Вставить горизонтальный импост" Command="{Binding InsertHorizontalImpostCommand}" Padding="10,2"/>
 			<Button Content="Вставить 3 Импоста" Command="{Binding InsertMultipleImpostsCommand}" Padding="10,2"/>
 			<Button Content="Разбить поровну" Command="{Binding SplitEqualCommand}" Padding="10,2"/>
 			<Button Content="Разбить в точке клика" Command="{Binding SplitAtClickCommand}" Padding="10,2"/>
+			<Button Content="Разбить поровну" Command="{Binding SplitImpostEqualCommand}" Padding="10,2"/>
+			<Button Content="Разбить в точке клика" Command="{Binding SplitImpostAtClickCommand}" Padding="10,2"/>
 			<Separator Margin="10,0"/>
 
-<TextBlock Text="Стыки доски:" VerticalAlignment="Center"/>
-<TextBlock Text="Начало:" VerticalAlignment="Center" Margin="5,0,0,0"/>
-<Button Content="Ус" Command="{Binding SetStartTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Miter}" Padding="10,2"/>
-<Button Content="Шип" Command="{Binding SetStartTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Tenon}" Padding="10,2"/>
-<Button Content="Паз" Command="{Binding SetStartTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Mortise}" Padding="10,2"/>
+			<TextBlock Text="Стыки доски:" VerticalAlignment="Center"/>
+			<TextBlock Text="Начало:" VerticalAlignment="Center" Margin="5,0,0,0"/>
+			<Button Content="Ус" Command="{Binding SetStartTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Miter}" Padding="10,2"/>
+			<Button Content="Шип" Command="{Binding SetStartTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Tenon}" Padding="10,2"/>
+			<Button Content="Паз" Command="{Binding SetStartTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Mortise}" Padding="10,2"/>
 
-<TextBlock Text="Конец:" VerticalAlignment="Center" Margin="5,0,0,0"/>
-<Button Content="Ус" Command="{Binding SetEndTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Miter}" Padding="10,2"/>
-<Button Content="Шип" Command="{Binding SetEndTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Tenon}" Padding="10,2"/>
-<Button Content="Паз" Command="{Binding SetEndTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Mortise}" Padding="10,2"/>
+			<TextBlock Text="Конец:" VerticalAlignment="Center" Margin="5,0,0,0"/>
+			<Button Content="Ус" Command="{Binding SetEndTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Miter}" Padding="10,2"/>
+			<Button Content="Шип" Command="{Binding SetEndTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Tenon}" Padding="10,2"/>
+			<Button Content="Паз" Command="{Binding SetEndTypeCommand}" CommandParameter="{x:Static mat:JointEndType.Mortise}" Padding="10,2"/>
 
 			<Separator Margin="10,0"/>
 

@@ -25,6 +25,8 @@ public partial class MainViewModel : ReactiveObject
     [Reactive] private bool _canUndo;
     [Reactive] private bool _canRedo;
     [Reactive] private string _statusMessage = "Готово";
+    [Reactive] private bool _isNodeVisible = true;
+
     [Reactive] private FrameViewModel? _selectedFrame;
     [Reactive] private Point? _lastClickPoint;
     [Reactive] private SelectableElement? _selectedElement;
@@ -46,14 +48,19 @@ public partial class MainViewModel : ReactiveObject
     public ReactiveCommand<JointEndType, Unit> SetEndTypeCommand { get; }
     public ReactiveCommand<SelectableElement, Unit> SelectElementCommand { get; }
     public ReactiveCommand<JointEndType, Unit> SetJointTypeCommand { get; }
+    public ReactiveCommand<Unit, Unit> SplitImpostEqualCommand { get; }
+    public ReactiveCommand<Unit, Unit> SplitImpostAtClickCommand { get; }
 
     public MainViewModel()
     {
         var canUndoObservable = this.WhenAnyValue(x => x.CanUndo);
         var canRedoObservable = this.WhenAnyValue(x => x.CanRedo);
-        var canMaterializeObservable = this.WhenAnyValue(x => x.Frames.Count, count => count > 0);
+        var canMaterializeObservable = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is SelectableElement);
         var canChangeJoint = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is BoardViewModel);
         var canChangeSpace = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is LightSpaceViewModel);
+        var canSplitImpost = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is ImpostViewModel);
+        var canSplitFrmae = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is WireframeLine);
+
 
         _modelChanged.Subscribe(_ => RefreshGeometry());
 
@@ -120,7 +127,7 @@ public partial class MainViewModel : ReactiveObject
                 LastClickPoint = null;
             }
             else StatusMessage = "Сначала кликните по линии, чтобы выбрать её";
-        });
+        }, canSplitFrmae);
 
         SplitEqualCommand = ReactiveCommand.Create(() =>
         {
@@ -131,7 +138,28 @@ public partial class MainViewModel : ReactiveObject
                 StatusMessage = "Линия разбита поровну";
             }
             else StatusMessage = "Выберите линию для разбиения";
-        });
+        }, canSplitFrmae);
+
+        SplitImpostEqualCommand = ReactiveCommand.Create(() =>
+        {
+            if (SelectedElement is ImpostViewModel impVM)
+            {
+                _history.Execute(new SplitImpostCommand(impVM.SourceImpost, null));
+                _modelChanged.OnNext(Unit.Default);
+                StatusMessage = "Импост разбит поровну";
+            }
+        }, canSplitImpost);
+
+        SplitImpostAtClickCommand = ReactiveCommand.Create(() =>
+        {
+            if (SelectedElement is ImpostViewModel impVM && LastClickPoint != null)
+            {
+                _history.Execute(new SplitImpostCommand(impVM.SourceImpost, LastClickPoint));
+                LastClickPoint = null;
+                _modelChanged.OnNext(Unit.Default);
+                StatusMessage = "Импост разбит в точке клика";
+            }
+        }, canSplitImpost);
 
         UndoCommand = ReactiveCommand.Create(() =>
         {

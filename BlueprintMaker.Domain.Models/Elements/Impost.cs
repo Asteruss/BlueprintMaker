@@ -1,4 +1,5 @@
 ﻿using BlueprintMaker.Core.Geometry;
+using BlueprintMaker.Domain.Models.Materialisation;
 using BlueprintMaker.Domain.Models.Rules;
 using System.Data;
 
@@ -8,6 +9,8 @@ namespace BlueprintMaker.Domain.Models.Elements;
 
 public sealed class Impost : PhysicalElement
 {
+    public Board? Board { get; private set; }
+
     // Конструктор без ширины
     internal Impost(Guid id, IWindowNode parent, AxisOrientation orientation, double relativePosition)
         : base(id, localContour: null, rule: new ImpostPlacementRule(orientation, relativePosition))
@@ -19,6 +22,26 @@ public sealed class Impost : PhysicalElement
         var orientation = (Rule as ImpostPlacementRule)?.Orientation ?? AxisOrientation.Vertical;
         SetRule(new ImpostPlacementRule(orientation, newRelativePosition));
     }
+
+    protected override void OnMaterialized()
+    {
+        var centerContour = GetContour();
+        var bandVerts = ContourMath.OffsetBandCenter(centerContour.Vertices, Width);
+
+        Board = new Board(Width)
+        {
+            PhysicalContour = Contour.CreateClosed(bandVerts)
+        };
+    }
+
+    public override IReadOnlyList<Contour> GetPhysicalGeometry()
+    {
+        if (Width > 0 && Board != null)
+            return new List<Contour> { Board.PhysicalContour };
+
+        return base.GetPhysicalGeometry();
+    }
+
     public void ReprojectToParent()
     {
         // Если мы заморожены (Rule == null) и у нас есть родитель

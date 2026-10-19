@@ -373,4 +373,54 @@ public static class ContourMath
         }
         return result;
     }
+
+    /// <summary>
+    /// Создает замкнутую полосу (брус) вокруг открытого контура (центральной линии).
+    /// Расширяется в обе стороны на halfWidth.
+    /// </summary>
+    public static IReadOnlyList<ContourVertex> OffsetBandCenter(IReadOnlyList<ContourVertex> vertices, double width)
+    {
+        double halfWidth = width / 2.0;
+        var leftSide = new List<ContourVertex>();
+        var rightSide = new List<ContourVertex>();
+
+        for (int i = 0; i < vertices.Count; i++)
+        {
+            var curr = vertices[i];
+            var prev = i > 0 ? vertices[i - 1] : curr;
+            var next = i < vertices.Count - 1 ? vertices[i + 1] : curr;
+
+            var dirPrev = new Point(curr.Position.X - prev.Position.X, curr.Position.Y - prev.Position.Y);
+            var dirNext = new Point(next.Position.X - curr.Position.X, next.Position.Y - curr.Position.Y);
+            var dirSum = new Point(dirPrev.X + dirNext.X, dirPrev.Y + dirNext.Y);
+            double len = Math.Sqrt(dirSum.X * dirSum.X + dirSum.Y * dirSum.Y);
+
+            Point normal;
+            if (len > 0.001)
+            {
+                normal = new Point(-dirSum.Y / len, dirSum.X / len);
+            }
+            else
+            {
+                double dx = next.Position.X - curr.Position.X;
+                double dy = next.Position.Y - curr.Position.Y;
+                double l = Math.Sqrt(dx * dx + dy * dy);
+                normal = l > 0.001 ? new Point(-dy / l, dx / l) : new Point(0, 0);
+            }
+
+            leftSide.Add(new ContourVertex(
+                new Point(curr.Position.X - normal.X * halfWidth, curr.Position.Y - normal.Y * halfWidth),
+                curr.Bulge));
+
+            rightSide.Add(new ContourVertex(
+                new Point(curr.Position.X + normal.X * halfWidth, curr.Position.Y + normal.Y * halfWidth),
+                curr.Bulge));
+        }
+
+        var result = new List<ContourVertex>(leftSide);
+        rightSide.Reverse();
+        result.AddRange(rightSide);
+
+        return result;
+    }
 }

@@ -3,7 +3,7 @@ using BlueprintMaker.Domain.Models.Elements;
 
 namespace BlueprintMaker.Domain.Models.Materialisation.Tests;
 
-public class MaterialisationTests
+public class FrameMaterialisationTests
 {
     private double ToMm(double val) => Math.Floor(val);
 

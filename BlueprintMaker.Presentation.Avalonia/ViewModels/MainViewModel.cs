@@ -34,6 +34,7 @@ public partial class MainViewModel : ReactiveObject
     public ObservableCollection<FrameViewModel> Frames { get; } = new();
 
     public ReactiveCommand<Unit, Unit> CreateWindowCommand { get; }
+    public ReactiveCommand<Unit, Unit> CreateOvalWindowCommand { get; }
     public ReactiveCommand<Unit, Unit> CreateWindowTCommand { get; }
     public ReactiveCommand<Unit, Unit> CreateWindowHCommand { get; }
     public ReactiveCommand<Unit, Unit> UndoCommand { get; }
@@ -69,6 +70,7 @@ public partial class MainViewModel : ReactiveObject
         CreateWindowCommand = ReactiveCommand.Create(CreateWindow);
         CreateWindowTCommand = ReactiveCommand.Create(CreateTrapezoidWindow);
         CreateWindowHCommand = ReactiveCommand.Create(CreateHexagonWindow);
+        CreateOvalWindowCommand = ReactiveCommand.Create(CreateOvalWindow);
 
         SetStartTypeCommand = ReactiveCommand.Create<JointEndType>(type =>
         {
@@ -360,6 +362,42 @@ public partial class MainViewModel : ReactiveObject
         UpdateHistoryState();
         _modelChanged.OnNext(Unit.Default);
     }
+
+    private void CreateOvalWindow()
+    {
+        double centerX = 300, centerY = 250;
+        double a = 250;  // горизонтальная полуось
+        double b = 200;  // вертикальная полуось
+
+        var vertices = new Point[] {
+        new(centerX + a, centerY),  // правая
+        new(centerX, centerY - b),  // верхняя
+        new(centerX - a, centerY),  // левая
+        new(centerX, centerY + b),  // нижняя
+    };
+
+        double bulge = -Math.Tan(Math.PI / 8);
+
+        var contour = Contour.CreateClosed(new[] {
+        new ContourVertex(vertices[0], bulge),
+        new ContourVertex(vertices[1], bulge),
+        new ContourVertex(vertices[2], bulge),
+        new ContourVertex(vertices[3], bulge),
+    });
+
+        _history.Execute(new CreateFrameCommand(_document, contour));
+        Frames.Clear();
+        if (_document.Root != null)
+        {
+            Frames.Add(new FrameViewModel(_document.Root, _history, SelectElementCommand));
+            SelectedFrame = Frames[0];
+            SelectedFrame.IsSelected = true;
+        }
+        StatusMessage = "Овальное окно создано";
+        UpdateHistoryState();
+        _modelChanged.OnNext(Unit.Default);
+    }
+
 
     private void UpdateHistoryState()
     {

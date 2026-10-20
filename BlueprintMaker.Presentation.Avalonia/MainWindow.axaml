@@ -24,6 +24,7 @@
 				<MenuItem Header="Создать окно" Command="{Binding CreateWindowCommand}"/>
 				<MenuItem Header="Создать окно-трапецию" Command="{Binding CreateWindowTCommand}"/>
 				<MenuItem Header="Создать окно-шестрагранник" Command="{Binding CreateWindowHCommand}"/>
+				<MenuItem Header="Создать овальное окно" Command="{Binding CreateOvalWindowCommand}"/>
 			</MenuItem>
 		</Menu>
 

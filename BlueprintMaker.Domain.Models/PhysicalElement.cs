@@ -41,8 +41,11 @@ public abstract class PhysicalElement : WindowNodeBase, IMaterializable
 
     public void SetSegmentArc(int startVertexIndex, double bulge)
     {
-        var currentVertices = GetContour().Vertices.ToList();
-        if (startVertexIndex < 0 || startVertexIndex >= currentVertices.Count - 1)
+        var currentContour = GetContour();
+        var currentVertices = currentContour.Vertices.ToList();
+
+        int maxSegmentIndex = currentVertices.Count - (currentContour.IsClosed ? 0 : 1);
+        if (startVertexIndex < 0 || startVertexIndex >= maxSegmentIndex)
             throw new ArgumentOutOfRangeException(nameof(startVertexIndex));
 
         currentVertices[startVertexIndex] = new ContourVertex(currentVertices[startVertexIndex].Position, bulge);
@@ -51,12 +54,18 @@ public abstract class PhysicalElement : WindowNodeBase, IMaterializable
 
     public void SetSegmentArcByControlPoint(int startVertexIndex, Point controlPoint)
     {
-        var currentVertices = GetContour().Vertices.ToList();
-        if (startVertexIndex < 0 || startVertexIndex >= currentVertices.Count - 1)
+        var currentContour = GetContour();
+        var currentVertices = currentContour.Vertices.ToList();
+
+        int maxSegmentIndex = currentVertices.Count - (currentContour.IsClosed ? 0 : 1);
+        if (startVertexIndex < 0 || startVertexIndex >= maxSegmentIndex)
             throw new ArgumentOutOfRangeException(nameof(startVertexIndex));
 
         var from = currentVertices[startVertexIndex].Position;
-        var to = currentVertices[startVertexIndex + 1].Position;
+
+        var to = (currentContour.IsClosed && startVertexIndex == currentVertices.Count - 1)
+            ? currentVertices[0].Position
+            : currentVertices[startVertexIndex + 1].Position;
 
         // Вычисляем Bulge по 3 точкам
         double bulge = BulgeMath.BulgeFromThreePoints(from, controlPoint, to);

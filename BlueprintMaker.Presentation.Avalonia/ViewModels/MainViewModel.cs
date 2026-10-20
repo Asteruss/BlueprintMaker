@@ -51,6 +51,7 @@ public partial class MainViewModel : ReactiveObject
     public ReactiveCommand<JointEndType, Unit> SetJointTypeCommand { get; }
     public ReactiveCommand<Unit, Unit> SplitImpostEqualCommand { get; }
     public ReactiveCommand<Unit, Unit> SplitImpostAtClickCommand { get; }
+    public ReactiveCommand<Unit, Unit> ToggleArcCommand { get; }
 
     public MainViewModel()
     {
@@ -61,7 +62,7 @@ public partial class MainViewModel : ReactiveObject
         var canChangeSpace = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is LightSpaceViewModel);
         var canSplitImpost = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is ImpostSegment);
         var canSplitFrmae = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is WireframeLine);
-
+        var canToggleArc = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is WireframeLine || el is ImpostSegment);
 
         _modelChanged.Subscribe(_ => RefreshGeometry());
 
@@ -220,6 +221,32 @@ public partial class MainViewModel : ReactiveObject
             }
         }, canMaterializeObservable);
 
+        ToggleArcCommand = ReactiveCommand.Create(() =>
+        {
+            PhysicalElement element = null!;
+            int segmentIndex = 0;
+            double currentBulge = 0;
+
+            if (SelectedElement is WireframeLine line)
+            {
+                element = line.SourceElement;
+                segmentIndex = line.SegmentIndex;
+                currentBulge = line.Bulge;
+            }
+            else if (SelectedElement is ImpostSegment seg)
+            {
+                element = seg.SourceImpost;
+                segmentIndex = seg.SegmentIndex;
+                currentBulge = seg.Bulge;
+            }
+            else return;
+
+            var newBulge = Math.Abs(currentBulge) < 0.0001 ? 0.5 : 0.0;
+            _history.Execute(new SetSegmentArcCommand(element, segmentIndex, newBulge));
+            _modelChanged.OnNext(Unit.Default);
+            StatusMessage = newBulge == 0 ? "Сегмент стал прямой" : "Сегмент стал дугой";
+        }, canToggleArc);
+
         InsertVerticalImpostCommand = ReactiveCommand.Create(() =>
         {
             if (SelectedElement is LightSpaceViewModel lsVM)
@@ -357,7 +384,15 @@ public partial class MainViewModel : ReactiveObject
         if (element is ImpostViewModel imp)
             foreach (var seg in imp.Segments)
                 DeselectAll(seg);
+    }
 
-
+    /// <summary>
+    /// Выполняет Undo-команду через историю. Используется code-behind (MainWindow)
+    /// для сохранения финального результата drag в истории.
+    /// </summary>
+    public void ExecuteCommand(IUndoableCommand command)
+    {
+        _history.Execute(command);
+        UpdateHistoryState();
     }
 }

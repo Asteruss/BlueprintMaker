@@ -3,23 +3,28 @@ using BlueprintMaker.Core.Geometry;
 
 namespace BlueprintMaker.Application.Commands;
 
+/// <summary>
+/// Меняет Bulge сегмента через контрольную точку дуги.
+/// oldBulge передаётся в конструкторе (запоминается в начале drag в NodeViewModel.BeginDrag),
+/// чтобы Undo корректно вернул сегмент к начальной кривизне.
+/// </summary>
 public sealed class MoveArcControlPointCommand : IUndoableCommand
 {
     private readonly PhysicalElement _element;
     private readonly int _segmentIndex;
+    private readonly double _oldBulge;
     private readonly Point _newControlPos;
-    private double _oldBulge;
 
-    public MoveArcControlPointCommand(PhysicalElement element, int segmentIndex, Point newControlPos)
+    public MoveArcControlPointCommand(PhysicalElement element, int segmentIndex, double oldBulge, Point newControlPos)
     {
         _element = element;
         _segmentIndex = segmentIndex;
+        _oldBulge = oldBulge;
         _newControlPos = newControlPos;
     }
 
     public void Execute()
     {
-        _oldBulge = _element.GetContour().Vertices[_segmentIndex].Bulge;
         _element.SetSegmentArcByControlPoint(_segmentIndex, _newControlPos);
     }
 

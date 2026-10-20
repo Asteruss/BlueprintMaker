@@ -12,5 +12,8 @@ public enum NodeType
     ImpostEnd,
 
     /// <summary> Внутренний узел импоста (точка разбиения). Двигается внутри светового пространства. </summary>
-    ImpostSplit
+    ImpostSplit,
+
+    /// <summary> Контрольная точка дуги сегмента</summary>
+    ArcControl
 }

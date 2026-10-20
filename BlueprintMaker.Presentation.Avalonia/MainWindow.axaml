@@ -232,10 +232,16 @@
 
 							<Button Content="Разбить поровну" Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).SplitEqualCommand}" Padding="10,2"/>
 							<Button Content="Разбить в точке клика" Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).SplitAtClickCommand}" Padding="10,2"/>
+							<Button Content="Сделать дугой" Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).ToggleArcCommand}"/>
+						
 						</StackPanel>
 					</DataTemplate>
 					<!--Node-->
 					<DataTemplate DataType="vm:NodeViewModel">
+						<StackPanel>
+							<TextBox Text="{Binding X}"/>
+							<TextBox Text="{Binding Y}"/>
+						</StackPanel>
 					</DataTemplate>
 					<!--LightSpace-->
 					<DataTemplate DataType="vm:LightSpaceViewModel">
@@ -332,6 +338,7 @@
 
 							<Button Content="Разбить поровну" Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).SplitImpostEqualCommand}"/>
 							<Button Content="Разбить в точке клика" Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).SplitImpostAtClickCommand}"/>
+							<Button Content="Сделать дугой" Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).ToggleArcCommand}"/>
 							<Separator Margin="0, 5"/>
 							<Grid ColumnDefinitions="*,2*">
 								<NumericUpDown x:Name="MatSize"

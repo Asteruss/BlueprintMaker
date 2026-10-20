@@ -1,7 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Media.TextFormatting.Unicode;
 using BlueprintMaker.Core.Geometry;
 using BlueprintMaker.Domain.Models.Elements;
 using BlueprintMaker.Domain.Models.Rules;
@@ -56,6 +55,7 @@ public partial class MainWindow : Window
         if (sender is Control ctrl && ctrl.DataContext is NodeViewModel nodeVM)
         {
             _draggingNode = nodeVM;
+            nodeVM.BeginDrag();   // запоминаем старую позицию/кривизну
 
             // Выделяем узел
             nodeVM.SelectCommand?.Execute(nodeVM).Subscribe(_ => { });
@@ -66,6 +66,7 @@ public partial class MainWindow : Window
 
     private void MainWindow_PointerMoved(object? sender, PointerEventArgs e)
     {
+        // Движение импоста (не node) — оставлено в code-behind, как было
         if (_draggingImpost != null)
         {
             var pos = e.GetPosition(DrawingCanvas);
@@ -92,40 +93,13 @@ public partial class MainWindow : Window
             }
         }
 
+        // Движение node — делегировано в NodeViewModel.DragTo
         if (_draggingNode != null)
         {
             var pos = e.GetPosition(DrawingCanvas);
             var corePos = new Core.Geometry.Point(pos.X, pos.Y);
 
-            if (_draggingNode.NodeType == NodeType.ImpostEnd)
-            {
-                var parent = _draggingNode.Element.Parent;
-                if (parent != null)
-                {
-                    var boundary = parent.GetContour();
-                    double minDist = 20.0;
-                    Core.Geometry.Point? snappedPos = null; // Делаем nullable
-
-                    for (int i = 0; i < boundary.Vertices.Count; i++)
-                    {
-                        var from = boundary.Vertices[i];
-                        var to = boundary.Vertices[(i + 1) % boundary.Vertices.Count];
-                        var proj = SegmentProjection.Project(from.Position, to.Position, from.Bulge, corePos);
-
-                        if (proj.Distance < minDist)
-                        {
-                            minDist = proj.Distance;
-                            snappedPos = proj.ClosestPoint;
-                        }
-                    }
-
-                    if (snappedPos == null) return;
-
-                    corePos = snappedPos.Value;
-                }
-            }
-
-            _draggingNode.Element.MoveNode(_draggingNode.Index, corePos);
+            _draggingNode.DragTo(corePos);
 
             if (DataContext is MainViewModel mvm2 && mvm2.SelectedFrame != null)
                 mvm2.SelectedFrame.Refresh();
@@ -134,9 +108,20 @@ public partial class MainWindow : Window
 
     private void MainWindow_PointerReleased(object? sender, PointerReleasedEventArgs e)
     {
+        // Движение импоста (не node) — оставлено
         _draggingImpost = null;
-        _draggingNode = null;
 
-        // В будущем здесь нужно создать Undo-команду (MoveNodeCommand)
+        // Движение node — создаём Undo-команду и сохраняем в истории
+        if (_draggingNode != null)
+        {
+            var cmd = _draggingNode.EndDrag();
+            _draggingNode = null;
+
+            if (cmd != null && DataContext is MainViewModel mvm)
+            {
+                mvm.ExecuteCommand(cmd);
+                mvm.SelectedFrame?.Refresh();
+            }
+        }
     }
 }

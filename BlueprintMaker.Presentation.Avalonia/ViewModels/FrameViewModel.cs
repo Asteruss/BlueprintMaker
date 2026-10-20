@@ -1,10 +1,12 @@
 ﻿using BlueprintMaker.Application;
+using BlueprintMaker.Core.Geometry;
 using BlueprintMaker.Domain.Models;
 using BlueprintMaker.Domain.Models.Elements;
 using BlueprintMaker.Domain.Models.Materialisation;
 using DynamicData;
 using ReactiveUI;
 using ReactiveUI.SourceGenerators;
+using System;
 using System.Collections.ObjectModel;
 using System.Reactive;
 
@@ -58,11 +60,17 @@ public partial class FrameViewModel : SelectableElement
             {
                 var from = contour.Vertices[i];
                 var to = contour.Vertices[(i + 1) % contour.Vertices.Count];
-
-                // Передаем frame и i
                 var line = new WireframeLine(frame, i, from, to, _selectCmd);
                 parentVM.Children.Add(line);
                 Lines.Add(line);
+
+                var ctrl = ComputeArcControlPoint(from.Position, to.Position, from.Bulge);
+                if (ctrl.HasValue && frame.Width == 0)
+                {
+                    var arcNode = new NodeViewModel(frame, i, ctrl.Value, _selectCmd, NodeType.ArcControl);
+                    parentVM.Children.Add(arcNode);
+                    Nodes.Add(arcNode);
+                }
             }
             if (frame.Width > 0)
             {
@@ -118,6 +126,19 @@ public partial class FrameViewModel : SelectableElement
                     Nodes.Add(nvm);
             }
 
+            for (int i = 0; i < impContour.Vertices.Count - 1; i++)
+            {
+                var from = impContour.Vertices[i];
+                var to = impContour.Vertices[i + 1];
+                var ctrl = ComputeArcControlPoint(from.Position, to.Position, from.Bulge);
+                if (ctrl.HasValue && impost.Width == 0)
+                {
+                    var arcNode = new NodeViewModel(impost, i, ctrl.Value, _selectCmd, NodeType.ArcControl);
+                    parentVM.Children.Add(arcNode);
+                    Nodes.Add(arcNode);
+                }
+            }
+
             parentVM = impVM;
         }
         // Рекурсивно идем по детям
@@ -125,5 +146,26 @@ public partial class FrameViewModel : SelectableElement
         {
             BuildTree(child, parentVM);
         }
+    }
+
+    /// <summary>
+    /// Вычисляет контрольную точку дуги (середину дуги) по её концам и Bulge.
+    /// Возвращает null, если сегмент — прямая (Bulge == 0).
+    /// </summary>
+    private static Point? ComputeArcControlPoint(Point from, Point to, double bulge)
+    {
+        if (Math.Abs(bulge) < GeometryConstants.Tolerance) return null;
+
+        var mid = new Point((from.X + to.X) / 2.0, (from.Y + to.Y) / 2.0);
+
+        var ab = new Point(to.X - from.X, to.Y - from.Y);
+        double abLen = Math.Sqrt(ab.X * ab.X + ab.Y * ab.Y);
+        if (abLen < 1e-9) return null;
+
+        var perp = new Point(ab.Y / abLen, -ab.X / abLen);
+
+        double s = abLen * bulge / 2.0;
+
+        return new Point(mid.X + perp.X * s, mid.Y + perp.Y * s);
     }
 }

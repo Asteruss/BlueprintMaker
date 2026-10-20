@@ -293,11 +293,13 @@ public static class ContourMath
 
         // 4. Режем родителя каждой линией; первая часть — от линии A, вторая — от линии B
         //    (та же конвенция path1/path2, что была в SliceWithPolyline)
-        var (a1, _) = SliceWithPolyline(pv, parent.IsClosed, a);
-        var (_, b2) = SliceWithPolyline(pv, parent.IsClosed, b);
-        if (a1 == null || b2 == null) return (null, null);
+        var (a1, a2) = SliceWithPolyline(pv, parent.IsClosed, a);
+        var (b1, b2) = SliceWithPolyline(pv, parent.IsClosed, b);
+        if (a1 == null || a2 == null || b1 == null || b2 == null) return (null, null);
 
-        return (a1, b2);
+        var first = PickSide(a1, a2, ext, -1);
+        var second = PickSide(b1, b2, ext, +1);
+        return (first, second);
     }
 
     private static Point SegmentNormal(Point p, Point q)
@@ -649,5 +651,53 @@ public static class ContourMath
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Из двух частей возвращает ту, что лежит с заданной стороны от оси (sign = -1 или +1).
+    /// Сторона определяется суммой знаковых расстояний вершин до ближайшего сегмента оси.
+    /// </summary>
+    private static Contour PickSide(Contour c1, Contour c2, IReadOnlyList<Point> axis, int sign)
+    {
+        double s1 = SideScore(c1, axis) * sign;
+        double s2 = SideScore(c2, axis) * sign;
+        return s1 >= s2 ? c1 : c2;
+    }
+
+    private static double SideScore(Contour c, IReadOnlyList<Point> axis)
+    {
+        double sum = 0;
+        foreach (var v in c.Vertices)
+            sum += SignedDistanceToPolyline(v.Position, axis);
+        return sum;
+    }
+
+    /// <summary>
+    /// Знаковое расстояние до ближайшего сегмента ломаной.
+    /// Знак: положительный со стороны нормали (-dy, dx), как в ExactOffset.
+    /// </summary>
+    private static double SignedDistanceToPolyline(Point p, IReadOnlyList<Point> axis)
+    {
+        double best = double.MaxValue, bestSigned = 0;
+        for (int i = 0; i < axis.Count - 1; i++)
+        {
+            double dx = axis[i + 1].X - axis[i].X, dy = axis[i + 1].Y - axis[i].Y;
+            double len2 = dx * dx + dy * dy;
+            if (len2 < 1e-12) continue;
+
+            double t = ((p.X - axis[i].X) * dx + (p.Y - axis[i].Y) * dy) / len2;
+            t = Math.Max(0, Math.Min(1, t));
+
+            double qx = axis[i].X + dx * t, qy = axis[i].Y + dy * t;
+            double dist = Math.Sqrt((p.X - qx) * (p.X - qx) + (p.Y - qy) * (p.Y - qy));
+
+            if (dist < best)
+            {
+                best = dist;
+                double cross = dx * (p.Y - axis[i].Y) - dy * (p.X - axis[i].X);   // знак стороны
+                bestSigned = cross >= 0 ? dist : -dist;
+            }
+        }
+        return bestSigned;
     }
 }

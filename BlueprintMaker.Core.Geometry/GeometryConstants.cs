@@ -18,4 +18,8 @@ public static class GeometryConstants
     /// Нужна только для того, чтобы скелет и пустые пространства были видны на холсте
     /// </summary>
     public const double DisplayWidth = 2.0;
+
+    public const double TwoPi = 2 * Math.PI;
+    public const double ExtendDistance = 10000.0;
+    public const double MaxOffsetSweep = TwoPi - 1e-3;
 }

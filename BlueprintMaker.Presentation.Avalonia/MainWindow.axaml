@@ -30,9 +30,17 @@
 
 		<!-- Панель инструментов -->
 		<WrapPanel Grid.Row="1" Orientation="Horizontal" Margin="5"  Grid.Column="0" Grid.ColumnSpan="3">
-			<Button Content="Undo" Command="{Binding UndoCommand}" Padding="10,2"/>
-			<Button Content="Redo" Command="{Binding RedoCommand}" Padding="10,2"/>
-			<CheckBox Content="Включить узлы" IsChecked="{Binding IsNodeVisible}" Padding="10,2"/>
+			<Button Content="Undo"
+					Command="{Binding UndoCommand}"
+					HotKey="Ctrl+Z"
+					Padding="10,2"/>
+
+			<Button Content="Redo"
+					Command="{Binding RedoCommand}"
+					HotKey="Ctrl+Y"
+					Padding="10,2"/>
+
+			<ToggleSwitch OnContent="Узлы включены" OffContent="Узлы скрыты" IsChecked="{Binding IsNodeVisible}" Padding="10,2"/>
 
 			<Separator Margin="10,0"/>
 

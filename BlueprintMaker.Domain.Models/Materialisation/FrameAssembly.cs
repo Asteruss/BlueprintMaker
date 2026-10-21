@@ -13,12 +13,29 @@ public sealed class FrameAssembly
 
     public void Rebuild(Contour outerContour, Contour innerContour, double width)
     {
-        _boards.Clear();
-        _joints.Clear();
-        Width = width;
-
         int n = outerContour.Vertices.Count;
         if (n < 3 || innerContour.Vertices.Count != n) return;
+
+        Width = width;
+
+        if (_boards.Count == n)
+        {
+            for (int i = 0; i < n; i++)
+            {
+                _boards[i].StartOuter = outerContour.Vertices[i].Position;
+                _boards[i].EndOuter = outerContour.Vertices[(i + 1) % n].Position;
+                _boards[i].StartInner = innerContour.Vertices[i].Position;
+                _boards[i].EndInner = innerContour.Vertices[(i + 1) % n].Position;
+            }
+
+            foreach (var b in _boards)
+                CalculateBoardGeometry(b);
+
+            return;
+        }
+
+        _boards.Clear();
+        _joints.Clear();
 
         for (int i = 0; i < n; i++)
         {
@@ -28,11 +45,8 @@ public sealed class FrameAssembly
                 EndOuter = outerContour.Vertices[(i + 1) % n].Position,
                 StartInner = innerContour.Vertices[i].Position,
                 EndInner = innerContour.Vertices[(i + 1) % n].Position,
-
-                // Привязываем колбек пересчета к этому классу
                 RecalculateGeometryCallback = CalculateBoardGeometry
             };
-
             _boards.Add(b);
         }
 
@@ -44,7 +58,8 @@ public sealed class FrameAssembly
             _boards[(i + 1) % n].StartJoint = joint;
         }
 
-        foreach (var b in _boards) CalculateBoardGeometry(b);
+        foreach (var b in _boards)
+            CalculateBoardGeometry(b);
     }
 
     public void ChangeJoint(int jointIndex, JointEndType newTypeForA)

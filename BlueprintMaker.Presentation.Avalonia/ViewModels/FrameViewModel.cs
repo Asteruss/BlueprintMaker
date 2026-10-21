@@ -24,6 +24,7 @@ public partial class FrameViewModel : SelectableElement
     public ObservableCollection<BoardViewModel> Boards { get; } = new();
     public ObservableCollection<LightSpaceViewModel> Spaces { get; } = new();
     public ObservableCollection<ImpostViewModel> Imposts { get; } = new();
+    public ObservableCollection<SashViewModel> Sashes { get; } = new();
 
     public FrameAssembly Assembly => _frame.Assembly;
     [Reactive] private bool _isMaterialized;
@@ -43,6 +44,7 @@ public partial class FrameViewModel : SelectableElement
         Nodes.Clear();
         Boards.Clear();
         Spaces.Clear();
+        Sashes.Clear();
         Imposts.Clear();
         Children.Clear();
 
@@ -52,7 +54,17 @@ public partial class FrameViewModel : SelectableElement
 
     private void BuildTree(IWindowNode node, SelectableElement parentVM)
     {
-        if (node is Frame frame)
+        if (node is Sash sash)
+        {
+            var sashVM = new SashViewModel(sash, _selectCmd);
+            parentVM.Children.Add(sashVM);
+            Sashes.Add(sashVM);
+
+            sashVM.RefreshBoards();
+
+            parentVM = sashVM;
+        }
+        else if (node is Frame frame)
         {
             // Линии рамы
             var contour = frame.GetContour();

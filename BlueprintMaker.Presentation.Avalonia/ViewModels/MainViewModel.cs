@@ -44,6 +44,7 @@ public partial class MainViewModel : ReactiveObject
     public ReactiveCommand<Unit, Unit> InsertHorizontalImpostCommand { get; }
     public ReactiveCommand<decimal, Unit> InsertMultipleVerticalImpostsCommand { get; }
     public ReactiveCommand<decimal, Unit> InsertMultipleHorizontalImpostsCommand { get; }
+    public ReactiveCommand<decimal, Unit> InsertSashCommand { get; }
     public ReactiveCommand<Unit, Unit> SplitEqualCommand { get; }
     public ReactiveCommand<Unit, Unit> SplitAtClickCommand { get; }
     public ReactiveCommand<JointEndType, Unit> SetStartTypeCommand { get; }
@@ -64,6 +65,8 @@ public partial class MainViewModel : ReactiveObject
         var canSplitImpost = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is ImpostSegment);
         var canSplitFrmae = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is WireframeLine);
         var canToggleArc = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is WireframeLine || el is ImpostSegment);
+        var canInsertSash = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is LightSpaceViewModel);
+
 
         _modelChanged.Subscribe(_ => RefreshGeometry());
 
@@ -222,6 +225,19 @@ public partial class MainViewModel : ReactiveObject
 
             }
         }, canMaterializeObservable);
+
+
+        InsertSashCommand = ReactiveCommand.Create<decimal>(sizeInput =>
+        {
+            if (SelectedElement is LightSpaceViewModel lsVM)
+            {
+                double sashWidth = (sizeInput < 0 || sizeInput > 50) ? 20 : (double)sizeInput;
+                _history.Execute(new InsertSashCommand(lsVM.SourceSpace, sashWidth));
+                _modelChanged.OnNext(Unit.Default);
+                StatusMessage = $"Створка вставлена ({sashWidth}мм)";
+            }
+            else StatusMessage = "Выберите световое пространство";
+        }, canInsertSash);
 
         ToggleArcCommand = ReactiveCommand.Create(() =>
         {
@@ -422,6 +438,10 @@ public partial class MainViewModel : ReactiveObject
         if (element is ImpostViewModel imp)
             foreach (var seg in imp.Segments)
                 DeselectAll(seg);
+
+        if (element is SashViewModel sash)
+            foreach (var board in sash.Boards)
+                DeselectAll(board);
     }
 
     /// <summary>

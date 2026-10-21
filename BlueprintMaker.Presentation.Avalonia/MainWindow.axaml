@@ -182,13 +182,44 @@
 												<DataTemplate x:DataType="vm:BoardViewModel">
 													<Path Data="{Binding Geometry}"
 														  Fill="Transparent"
-														  Stroke="Black"
+														  Stroke="{Binding FillColor}"
 														  StrokeThickness="1"
 														  PointerPressed="ElementPath_PointerPressed"/>
 												</DataTemplate>
 											</ItemsControl.ItemTemplate>
 										</ItemsControl>
+
 									</Panel>
+								</DataTemplate>
+							</ItemsControl.ItemTemplate>
+						</ItemsControl>
+
+						<ItemsControl ItemsSource="{Binding Sashes}">
+							<ItemsControl.ItemsPanel>
+								<ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
+							</ItemsControl.ItemsPanel>
+							<ItemsControl.Styles>
+								<Style Selector="ItemsControl > ContentPresenter">
+									<Setter Property="Canvas.Left" Value="0"/>
+									<Setter Property="Canvas.Top" Value="0"/>
+								</Style>
+							</ItemsControl.Styles>
+							<ItemsControl.ItemTemplate>
+								<DataTemplate x:DataType="vm:SashViewModel">
+									<ItemsControl ItemsSource="{Binding Boards}">
+										<ItemsControl.ItemsPanel>
+											<ItemsPanelTemplate><Grid/></ItemsPanelTemplate>
+										</ItemsControl.ItemsPanel>
+										<ItemsControl.ItemTemplate>
+											<DataTemplate x:DataType="vm:BoardViewModel">
+												<Path Data="{Binding Geometry}"
+													  Fill="Transparent"
+													  Stroke="{Binding FillColor}"
+													  StrokeThickness="1"
+													  PointerPressed="ElementPath_PointerPressed"/>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
 								</DataTemplate>
 							</ItemsControl.ItemTemplate>
 						</ItemsControl>
@@ -218,6 +249,8 @@
 							</ItemsControl.ItemTemplate>
 						</ItemsControl>
 
+
+
 					</Panel>
 				</DataTemplate>
 			</ItemsControl.ItemTemplate>
@@ -234,7 +267,7 @@
 							<Button Content="Разбить поровну" Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).SplitEqualCommand}" Padding="10,2"/>
 							<Button Content="Разбить в точке клика" Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).SplitAtClickCommand}" Padding="10,2"/>
 							<Button Content="Сделать дугой" Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).ToggleArcCommand}"/>
-						
+
 						</StackPanel>
 					</DataTemplate>
 					<!--Node-->
@@ -278,7 +311,19 @@
 										CommandParameter="{Binding #ImpostsCountPicker2.Value}"
 										HorizontalAlignment="Stretch"/>
 							</StackPanel>
+							<Grid ColumnDefinitions="*,2*">
+								<NumericUpDown x:Name="MatSashSize"
+											   Value="20"
+											   Minimum="5"
+											   Maximum="50"
+											   ParsingNumberStyle="Integer"
+											   Grid.Column="0"/>
 
+								<Button Content="Вставить створку"
+										Command="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).InsertSashCommand}"
+										CommandParameter="{Binding #MatSashSize.Value}"
+										Grid.Column="1"/>
+							</Grid>
 						</StackPanel>
 					</DataTemplate>
 					<!--Board-->

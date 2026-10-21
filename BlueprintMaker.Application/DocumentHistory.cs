@@ -16,6 +16,7 @@ public sealed class DocumentHistory
     /// </summary>
     public void Execute(IUndoableCommand command)
     {
+        System.Diagnostics.Debug.WriteLine($"[History] Execute: {command.GetType().Name}");
         command.Execute();
         _undoStack.Push(command);
         _redoStack.Clear(); // После нового действия старые Redo удаляются
@@ -29,6 +30,7 @@ public sealed class DocumentHistory
         if (!CanUndo) return;
 
         var command = _undoStack.Pop();
+        System.Diagnostics.Debug.WriteLine($"[History] Undo: {command.GetType().Name}");
         command.Undo();
         _redoStack.Push(command);
     }

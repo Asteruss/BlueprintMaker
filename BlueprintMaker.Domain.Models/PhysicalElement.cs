@@ -18,7 +18,10 @@ public abstract class PhysicalElement : WindowNodeBase, IMaterializable
         Width = width;
         OnMaterialized();
     }
-
+    public void Dematerialize()
+    {
+        Width = 0;
+    }
     public virtual IReadOnlyList<Contour> GetPhysicalGeometry()
     {
         return new List<Contour> { GetContour() };

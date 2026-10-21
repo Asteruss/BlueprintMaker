@@ -104,6 +104,7 @@ public partial class FrameViewModel : SelectableElement
             }
             else
             {
+                IsMaterialized = false;
                 for (int i = 0; i < contour.Vertices.Count; i++)
                 {
                     var p = contour.Vertices[i].Position;

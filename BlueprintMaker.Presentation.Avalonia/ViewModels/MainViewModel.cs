@@ -7,6 +7,7 @@ using BlueprintMaker.Domain.Models.Materialisation;
 using ReactiveUI;
 using ReactiveUI.SourceGenerators;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Reactive;
 using System.Reactive.Linq;
@@ -83,8 +84,8 @@ public partial class MainViewModel : ReactiveObject
                 var joint = board.StartJoint;
                 if (joint != null)
                 {
-                    if (joint.BoardA == board) joint.SetTypeA(type);
-                    else joint.SetTypeB(type);
+                    bool forA = joint.BoardA == board;
+                    _history.Execute(new ChangeJointCommand(joint, type, forA));
                     _modelChanged.OnNext(Unit.Default);
                 }
             }
@@ -98,8 +99,8 @@ public partial class MainViewModel : ReactiveObject
                 var joint = board.EndJoint;
                 if (joint != null)
                 {
-                    if (joint.BoardA == board) joint.SetTypeA(type);
-                    else joint.SetTypeB(type);
+                    bool forA = joint.BoardA == board;
+                    _history.Execute(new ChangeJointCommand(joint, type, forA));
                     _modelChanged.OnNext(Unit.Default);
                 }
             }
@@ -118,25 +119,25 @@ public partial class MainViewModel : ReactiveObject
             if (SelectedElement is LightSpaceViewModel lsVM)
             {
                 int count = (int)countDecimal;
-                lsVM.SourceSpace.InsertMultipleImposts(count, AxisOrientation.Vertical);
+                _history.Execute(new InsertMultipleImpostsCommand(lsVM.SourceSpace, count, AxisOrientation.Vertical));
                 _modelChanged.OnNext(Unit.Default);
                 StatusMessage = $"Вставлено {count} импостов";
             }
             else StatusMessage = "Выберите световое пространство";
         }, canChangeSpace);
+
 
         InsertMultipleHorizontalImpostsCommand = ReactiveCommand.Create<decimal>(countDecimal =>
         {
             if (SelectedElement is LightSpaceViewModel lsVM)
             {
                 int count = (int)countDecimal;
-                lsVM.SourceSpace.InsertMultipleImposts(count, AxisOrientation.Horizontal);
+                _history.Execute(new InsertMultipleImpostsCommand(lsVM.SourceSpace, count, AxisOrientation.Horizontal));
                 _modelChanged.OnNext(Unit.Default);
                 StatusMessage = $"Вставлено {count} импостов";
             }
             else StatusMessage = "Выберите световое пространство";
         }, canChangeSpace);
-
 
         SplitAtClickCommand = ReactiveCommand.Create(() =>
         {
@@ -202,27 +203,21 @@ public partial class MainViewModel : ReactiveObject
             if (_document.Root != null)
             {
                 double size = (sizeInput < 0 || sizeInput > 50) ? 20 : (double)sizeInput;
+                PhysicalElement element;
                 if (SelectedElement is ImpostViewModel impVM)
-                {
-                    impVM.SourceImpost.Materialize(size);
-                    StatusMessage = $"Импост материализован ({size}мм)";
-                }
+                    element = impVM.SourceImpost;
                 else if (SelectedElement is ImpostSegment impSeg && impSeg.SourceImpost is Impost imp)
-                {
-                    imp.Materialize(size);
-                    StatusMessage = $"Импост материализован ({size}мм)";
-                }
+                    element = imp;
                 else
-                {
-                    _document.Root.Materialize(size);
-                    if (Frames.Count > 0) SelectedFrame = Frames[0];
-                    StatusMessage = $"Рама материализована ({size}мм)";
-                }
+                    element = _document.Root;
+
+                _history.Execute(new MaterializeCommand(element, size));
+                if (element == _document.Root && Frames.Count > 0)
+                    SelectedFrame = Frames[0];
 
                 _modelChanged.OnNext(Unit.Default);
                 UpdateHistoryState();
-
-
+                StatusMessage = $"Материализован ({size}мм)";
             }
         }, canMaterializeObservable);
 
@@ -293,13 +288,14 @@ public partial class MainViewModel : ReactiveObject
         {
             if (SelectedFrame == null) return;
             var assembly = SelectedFrame.Assembly;
+            var steps = new List<IUndoableCommand>();
             for (int i = 0; i < assembly.Joints.Count; i++)
-            {
-                assembly.ChangeJoint(i, type);
-            }
+                steps.Add(new ChangeJointCommand(assembly.Joints[i], type, forA: true));
+            _history.Execute(new MacroCommand(steps));
             _modelChanged.OnNext(Unit.Default);
             StatusMessage = $"Применен стык: {type}";
         });
+
 
         this.WhenAnyValue(x => x.CanUndo, x => x.CanRedo)
             .Subscribe(_ => _modelChanged.OnNext(Unit.Default));

@@ -34,11 +34,6 @@
 			<Button Content="Redo" Command="{Binding RedoCommand}" Padding="10,2"/>
 			<CheckBox Content="Включить узлы" IsChecked="{Binding IsNodeVisible}" Padding="10,2"/>
 
-
-			<Separator Margin="10,0"/>
-
-
-
 			<Separator Margin="10,0"/>
 
 			<TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Margin="10,0,0,0"/>

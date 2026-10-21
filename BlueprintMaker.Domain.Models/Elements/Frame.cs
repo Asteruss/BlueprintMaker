@@ -51,6 +51,7 @@ public class Frame : PhysicalElement
     {
         if (ContourMath.CalculateSignedArea(vertices) < 0) vertices.Reverse();
         var newContour = Contour.CreateClosed(vertices);
+        UpdateLocalContour(newContour);
         if (Width > 0) Assembly.Rebuild(GetContour(), InnerSpace.GetContour(), Width);
         return newContour;
     }

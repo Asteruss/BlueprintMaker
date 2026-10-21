@@ -86,7 +86,7 @@ public abstract class WindowNodeBase : IWindowNode
     }
 
     /// <summary>Смена стратегии (например, импост стоял по центру — стал на 30%).</summary>
-    protected void SetRule(IDerivationRule newRule)
+    public void SetRule(IDerivationRule newRule)
     {
         _rule = newRule;
         _localContour = null; // Возвращаемся к параметрической модели

@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using BlueprintMaker.Application.Commands;
 using BlueprintMaker.Core.Geometry;
 using BlueprintMaker.Domain.Models.Elements;
 using BlueprintMaker.Domain.Models.Rules;
@@ -14,6 +15,7 @@ public partial class MainWindow : Window
 {
     private Impost? _draggingImpost;
     private NodeViewModel? _draggingNode;
+    private double _dragStartRelativePos; 
 
     public MainWindow()
     {
@@ -41,6 +43,8 @@ public partial class MainWindow : Window
                     mvm2.LastClickPoint = new CorePoint(pos.X, pos.Y);
 
                 _draggingImpost = impSeg.SourceImpost as Impost;
+                if (_draggingImpost?.Rule is ImpostPlacementRule r)
+                    _dragStartRelativePos = r.RelativePosition;
             }
 
             if (el.SelectCommand != null)
@@ -55,9 +59,8 @@ public partial class MainWindow : Window
         if (sender is Control ctrl && ctrl.DataContext is NodeViewModel nodeVM)
         {
             _draggingNode = nodeVM;
-            nodeVM.BeginDrag();   // запоминаем старую позицию/кривизну
+            nodeVM.BeginDrag();
 
-            // Выделяем узел
             nodeVM.SelectCommand?.Execute(nodeVM).Subscribe(_ => { });
 
             e.Handled = true;
@@ -66,7 +69,6 @@ public partial class MainWindow : Window
 
     private void MainWindow_PointerMoved(object? sender, PointerEventArgs e)
     {
-        // Движение импоста (не node) — оставлено в code-behind, как было
         if (_draggingImpost != null)
         {
             var pos = e.GetPosition(DrawingCanvas);
@@ -85,7 +87,7 @@ public partial class MainWindow : Window
                     else
                         relativePos = bounds.Height > 0 ? (pos.Y - bounds.MinY) / bounds.Height : 0.5;
 
-                    impost.UpdatePosition(relativePos);
+                    impost.UpdatePosition(relativePos);  
 
                     if (DataContext is MainViewModel mvm && mvm.SelectedFrame != null)
                         mvm.SelectedFrame.Refresh();
@@ -93,11 +95,10 @@ public partial class MainWindow : Window
             }
         }
 
-        // Движение node — делегировано в NodeViewModel.DragTo
         if (_draggingNode != null)
         {
             var pos = e.GetPosition(DrawingCanvas);
-            var corePos = new Core.Geometry.Point(pos.X, pos.Y);
+            var corePos = new CorePoint(pos.X, pos.Y);
 
             _draggingNode.DragTo(corePos);
 
@@ -108,19 +109,30 @@ public partial class MainWindow : Window
 
     private void MainWindow_PointerReleased(object? sender, PointerReleasedEventArgs e)
     {
-        // Движение импоста (не node) — оставлено
-        _draggingImpost = null;
+        if (_draggingImpost != null)
+        {
+            if (_draggingImpost.Rule is ImpostPlacementRule r)
+            {
+                var cmd = new UpdateImpostPositionCommand(
+                    _draggingImpost, _dragStartRelativePos, r.RelativePosition);
+                if (DataContext is MainViewModel mvm)
+                {
+                    mvm.ExecuteCommand(cmd);
+                    mvm.SelectedFrame?.Refresh();
+                }
+            }
+            _draggingImpost = null;
+        }
 
-        // Движение node — создаём Undo-команду и сохраняем в истории
         if (_draggingNode != null)
         {
             var cmd = _draggingNode.EndDrag();
             _draggingNode = null;
 
-            if (cmd != null && DataContext is MainViewModel mvm)
+            if (cmd != null && DataContext is MainViewModel mvm2)
             {
-                mvm.ExecuteCommand(cmd);
-                mvm.SelectedFrame?.Refresh();
+                mvm2.ExecuteCommand(cmd);
+                mvm2.SelectedFrame?.Refresh();
             }
         }
     }

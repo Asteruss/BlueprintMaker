@@ -255,8 +255,17 @@
 							</ItemsControl.ItemTemplate>
 						</ItemsControl>
 
-
-
+						<Canvas IsVisible="{Binding IsSelected}">
+							<Ellipse Width="16" Height="16"
+									 Canvas.Left="{Binding FrameDragHandle.X, FallbackValue=0}"
+									 Canvas.Top="{Binding FrameDragHandle.Y, FallbackValue=0}"
+									 Fill="LightBlue"
+									 Stroke="DarkBlue"
+									 StrokeThickness="2"
+									 Margin="-8,-8,0,0"
+									 Cursor="{Binding FrameDragHandle.DragCursor}"
+									 PointerPressed="DragHandle_PointerPressed"/>
+						</Canvas>
 					</Panel>
 				</DataTemplate>
 			</ItemsControl.ItemTemplate>

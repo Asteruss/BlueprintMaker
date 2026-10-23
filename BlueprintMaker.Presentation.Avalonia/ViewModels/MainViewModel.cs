@@ -31,7 +31,9 @@ public partial class MainViewModel : ReactiveObject
     [Reactive] private FrameViewModel? _selectedFrame;
     [Reactive] private Point? _lastClickPoint;
     [Reactive] private SelectableElement? _selectedElement;
-
+    [Reactive] private double _canvasWidth;
+    [Reactive] private double _canvasHeight;
+    private bool _firstCentered = false;
     public ObservableCollection<FrameViewModel> Frames { get; } = new();
 
     public ReactiveCommand<Unit, Unit> CreateWindowCommand { get; }
@@ -319,6 +321,7 @@ public partial class MainViewModel : ReactiveObject
         }
         StatusMessage = "Окно создано";
         UpdateHistoryState();
+        CenterWindow();
         _modelChanged.OnNext(Unit.Default);
     }
 
@@ -342,6 +345,8 @@ public partial class MainViewModel : ReactiveObject
         }
         StatusMessage = "Окно-трапеция создано";
         UpdateHistoryState();
+        CenterWindow();
+
         _modelChanged.OnNext(Unit.Default);
     }
 
@@ -372,6 +377,8 @@ public partial class MainViewModel : ReactiveObject
         }
         StatusMessage = "Правильный шестиугольник создан";
         UpdateHistoryState();
+        CenterWindow();
+
         _modelChanged.OnNext(Unit.Default);
     }
 
@@ -407,8 +414,43 @@ public partial class MainViewModel : ReactiveObject
         }
         StatusMessage = "Овальное окно создано";
         UpdateHistoryState();
+        CenterWindow();
+
         _modelChanged.OnNext(Unit.Default);
     }
+
+
+    /// <summary>
+    /// Вызывается из code-behind при SizeChanged DrawingCanvas
+    /// </summary>
+    public void UpdateCanvasSize(double width, double height)
+    {
+        CanvasWidth = width;
+        CanvasHeight = height;
+
+        if (!_firstCentered && _document.Root != null && Frames.Count > 0)
+        {
+            CenterWindow();
+            _firstCentered = true;
+        }
+    }
+
+    /// <summary>
+    /// Центрирует раму в canvas. Вызывается при создании и при первом SizeChanged
+    /// </summary>
+    private void CenterWindow()
+    {
+        if (_document.Root == null || CanvasWidth <= 0) return;
+
+        var bounds = _document.Root.GetContour().BoundingBox;
+        double dx = (CanvasWidth - bounds.Width) / 2.0 - bounds.MinX;
+        double dy = (CanvasHeight - bounds.Height) / 2.0 - bounds.MinY;
+
+        if (Math.Abs(dx) > 0.001 || Math.Abs(dy) > 0.001)
+            _document.Root.MoveBy(dx, dy);
+    }
+
+
 
 
     private void UpdateHistoryState()
@@ -442,11 +484,17 @@ public partial class MainViewModel : ReactiveObject
 
     /// <summary>
     /// Выполняет Undo-команду через историю. Используется code-behind (MainWindow)
-    /// для сохранения финального результата drag в истории.
+    /// для сохранения финального результата drag в истории
     /// </summary>
     public void ExecuteCommand(IUndoableCommand command)
     {
         _history.Execute(command);
+        UpdateHistoryState();
+    }
+
+    public void RecordCommand(IUndoableCommand command)
+    {
+        _history.Record(command);
         UpdateHistoryState();
     }
 }

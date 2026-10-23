@@ -25,6 +25,7 @@ public partial class FrameViewModel : SelectableElement
     public ObservableCollection<LightSpaceViewModel> Spaces { get; } = new();
     public ObservableCollection<ImpostViewModel> Imposts { get; } = new();
     public ObservableCollection<SashViewModel> Sashes { get; } = new();
+    [Reactive] private FrameDragHandle _frameDragHandle;
 
     public FrameAssembly Assembly => _frame.Assembly;
     [Reactive] private bool _isMaterialized;
@@ -47,6 +48,7 @@ public partial class FrameViewModel : SelectableElement
         Sashes.Clear();
         Imposts.Clear();
         Children.Clear();
+        FrameDragHandle = null;
 
         // Запускаем рекурсивное построение
         BuildTree(_frame, this);
@@ -84,6 +86,7 @@ public partial class FrameViewModel : SelectableElement
                     Nodes.Add(arcNode);
                 }
             }
+
             if (frame.Width > 0)
             {
                 IsMaterialized = true;
@@ -113,6 +116,8 @@ public partial class FrameViewModel : SelectableElement
                     Nodes.Add(nvm);
                 }
             }
+            FrameDragHandle = new FrameDragHandle(frame, _selectCmd);
+
         }
         else if (node is LightSpace ls)
         {

@@ -55,4 +55,20 @@ public class Frame : PhysicalElement
         if (Width > 0) Assembly.Rebuild(GetContour(), InnerSpace.GetContour(), Width);
         return newContour;
     }
+
+    /// <summary>
+    /// Сдвигает все вершины контура на (dx, dy). Используется для перемещения рамы
+    /// </summary>
+    public void MoveBy(double dx, double dy)
+    {
+        var vertices = GetContour().Vertices.ToList();
+        for (int i = 0; i < vertices.Count; i++)
+        {
+            var v = vertices[i];
+            vertices[i] = new ContourVertex(
+                new Point(v.Position.X + dx, v.Position.Y + dy),
+                v.Bulge);
+        }
+        UpdateLocalContour(RebuildContour(vertices));
+    }
 }

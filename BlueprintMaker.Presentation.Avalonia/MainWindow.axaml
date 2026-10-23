@@ -63,7 +63,11 @@
 		<ItemsControl x:Name="DrawingCanvas" Grid.Row="2" Grid.Column="1" Background="LightGray" ItemsSource="{Binding Frames}">
 			<ItemsControl.ItemsPanel>
 				<ItemsPanelTemplate>
-					<Canvas HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="LightGray"/>
+					<Panel HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+						<Canvas Background="Transparent"
+								Width="{Binding $parent[Panel].Bounds.Width}"
+								Height="{Binding $parent[Panel].Bounds.Height}"/>
+					</Panel>
 				</ItemsPanelTemplate>
 			</ItemsControl.ItemsPanel>
 
@@ -71,14 +75,13 @@
 				<Style Selector="ItemsControl > ContentPresenter">
 					<Setter Property="Canvas.Left" Value="0"/>
 					<Setter Property="Canvas.Top" Value="0"/>
-					<Setter Property="HorizontalAlignment" Value="Stretch"/>
-					<Setter Property="VerticalAlignment" Value="Stretch"/>
 				</Style>
 			</ItemsControl.Styles>
 
 			<ItemsControl.ItemTemplate>
 				<DataTemplate x:DataType="vm:FrameViewModel">
-					<Panel HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MinWidth="1500" MinHeight="1500">
+					<Panel Width="{Binding $parent[Canvas].Bounds.Width}"
+						   Height="{Binding $parent[Canvas].Bounds.Height}">
 
 						<!-- Скелет -->
 						<ItemsControl ItemsSource="{Binding Lines}" IsVisible="{Binding !IsMaterialized}">

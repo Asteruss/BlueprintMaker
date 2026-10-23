@@ -26,7 +26,6 @@ public partial class MainViewModel : ReactiveObject
     [Reactive] private bool _canUndo;
     [Reactive] private bool _canRedo;
     [Reactive] private string _statusMessage = "Готово";
-    [Reactive] private bool _isNodeVisible = true;
 
     [Reactive] private FrameViewModel? _selectedFrame;
     [Reactive] private Point? _lastClickPoint;

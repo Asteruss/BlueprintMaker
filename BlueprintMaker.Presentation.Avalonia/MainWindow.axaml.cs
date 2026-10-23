@@ -183,4 +183,8 @@ public partial class MainWindow : Window
             e.Handled = true;
         }
     }
+    private void ResetZoom_Click(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        AppSettings.Instance.Zoom = 1.0;
+    }
 }

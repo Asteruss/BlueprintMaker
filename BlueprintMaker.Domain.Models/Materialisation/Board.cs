@@ -20,7 +20,12 @@ public sealed class Board
     public Point StartInner { get; set; }
     public Point EndInner { get; set; }
 
+    // Bulge кромок доски от начала к концу (0 — прямая)
+    public double OuterBulge { get; set; }
+    public double InnerBulge { get; set; }
     // Колбек, который вызывает FrameAssembly для пересчета геометрии
+
+    public bool IsArc => System.Math.Abs(OuterBulge) > 1e-4 || System.Math.Abs(InnerBulge) > 1e-4;
     internal Action<Board>? RecalculateGeometryCallback { get; set; }
 
     internal Board(double width)

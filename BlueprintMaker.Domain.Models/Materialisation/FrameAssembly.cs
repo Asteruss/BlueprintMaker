@@ -14,23 +14,21 @@ public sealed class FrameAssembly
     public void Rebuild(Contour outerContour, Contour innerContour, double width)
     {
         int n = outerContour.Vertices.Count;
-        if (n < 3 || innerContour.Vertices.Count != n) return;
+        bool hasArc = outerContour.Vertices.Any(v => v.IsArcStart);
+
+        // Овал из двух дуг имеет всего 2 вершины
+        if (n < 2 || (n < 3 && !hasArc) || innerContour.Vertices.Count != n) return;
 
         Width = width;
 
+        // Количество досок не изменилось — обновляем геометрию, типы стыков сохраняются
         if (_boards.Count == n)
         {
             for (int i = 0; i < n; i++)
-            {
-                _boards[i].StartOuter = outerContour.Vertices[i].Position;
-                _boards[i].EndOuter = outerContour.Vertices[(i + 1) % n].Position;
-                _boards[i].StartInner = innerContour.Vertices[i].Position;
-                _boards[i].EndInner = innerContour.Vertices[(i + 1) % n].Position;
-            }
+                ApplySource(_boards[i], outerContour, innerContour, i, n);
 
             foreach (var b in _boards)
                 CalculateBoardGeometry(b);
-
             return;
         }
 
@@ -39,14 +37,8 @@ public sealed class FrameAssembly
 
         for (int i = 0; i < n; i++)
         {
-            var b = new Board(width)
-            {
-                StartOuter = outerContour.Vertices[i].Position,
-                EndOuter = outerContour.Vertices[(i + 1) % n].Position,
-                StartInner = innerContour.Vertices[i].Position,
-                EndInner = innerContour.Vertices[(i + 1) % n].Position,
-                RecalculateGeometryCallback = CalculateBoardGeometry
-            };
+            var b = new Board(width) { RecalculateGeometryCallback = CalculateBoardGeometry };
+            ApplySource(b, outerContour, innerContour, i, n);
             _boards.Add(b);
         }
 
@@ -65,35 +57,49 @@ public sealed class FrameAssembly
     public void ChangeJoint(int jointIndex, JointEndType newTypeForA)
     {
         if (jointIndex >= 0 && jointIndex < _joints.Count)
-        {
             _joints[jointIndex].SetTypeA(newTypeForA);
-        }
+    }
+
+    private static void ApplySource(Board b, Contour outer, Contour inner, int i, int n)
+    {
+        b.StartOuter = outer.Vertices[i].Position;
+        b.EndOuter = outer.Vertices[(i + 1) % n].Position;
+        b.StartInner = inner.Vertices[i].Position;
+        b.EndInner = inner.Vertices[(i + 1) % n].Position;
+        b.OuterBulge = outer.Vertices[i].Bulge;
+        b.InnerBulge = inner.Vertices[i].Bulge;
     }
 
     private void CalculateBoardGeometry(Board b)
     {
-        var dx = b.EndOuter.X - b.StartOuter.X;
-        var dy = b.EndOuter.Y - b.StartOuter.Y;
-        if (dx * dx + dy * dy < 0.0001) { b.PhysicalContour = null; return; }
+        if (b.StartOuter.DistanceTo(b.EndOuter) < 0.01)
+        {
+            b.PhysicalContour = null;
+            return;
+        }
 
-        // Сосед на начале — предыдущая доска, на конце — следующая
         var prev = b.StartJoint?.BoardA;
         var next = b.EndJoint?.BoardB;
 
-        // Начало: идём от начала доски
         var (startOut, startIn) = ResolveEnd(b, prev, b.StartJointType, atStart: true);
-        // Конец
         var (endOut, endIn) = ResolveEnd(b, next, b.EndJointType, atStart: false);
 
-        b.Length = System.Math.Max(startOut.DistanceTo(endOut), startIn.DistanceTo(endIn));
+        // Дуги кромок между новыми концами (укорочение/удлинение стыками учтено)
+        double outerBulge = ContourMath.SubBulge(b.StartOuter, b.EndOuter, b.OuterBulge, startOut, endOut);
+        double innerBulge = ContourMath.SubBulge(b.StartInner, b.EndInner, b.InnerBulge, startIn, endIn);
 
+        b.Length = System.Math.Max(
+            EdgeLength(startOut, endOut, outerBulge),
+            EdgeLength(startIn, endIn, innerBulge));
+
+        // Обход: внешняя кромка вперёд, торец, внутренняя кромка назад (знак Bulge меняется), торец
         b.PhysicalContour = Contour.CreateClosed(new List<ContourVertex>
-    {
-        new(startOut),
-        new(endOut),
-        new(endIn),
-        new(startIn),
-    });
+        {
+            new(startOut, outerBulge),
+            new(endOut, 0),
+            new(endIn, -innerBulge),
+            new(startIn, 0),
+        });
     }
 
     /// Возвращает (внешняя, внутренняя) точки торца доски у одного стыка.
@@ -109,25 +115,29 @@ public sealed class FrameAssembly
         {
             // Сквозная доска: внешняя точка на месте,
             // внутренняя — пересечение моей внутренней кромки с внешней кромкой соседа
-            var p = Intersect(b.StartInner, b.EndInner, neighbor.StartOuter, neighbor.EndOuter);
+            var p = ContourMath.IntersectCurves(
+                b.StartInner, b.EndInner, b.InnerBulge,
+                neighbor.StartOuter, neighbor.EndOuter, neighbor.OuterBulge,
+                inner);
             return (outer, p ?? inner);
         }
 
         // Tenon: доска упирается. Внутренняя точка на месте,
         // внешняя — пересечение моей внешней кромки с внутренней кромкой соседа
-        var q = Intersect(b.StartOuter, b.EndOuter, neighbor.StartInner, neighbor.EndInner);
+        var q = ContourMath.IntersectCurves(
+            b.StartOuter, b.EndOuter, b.OuterBulge,
+            neighbor.StartInner, neighbor.EndInner, neighbor.InnerBulge,
+            outer);
         return (q ?? outer, inner);
     }
 
-    private static Point? Intersect(Point a1, Point a2, Point b1, Point b2)
+    /// Длина кромки: хорда или длина дуги
+    private static double EdgeLength(Point a, Point b, double bulge)
     {
-        double d1x = a2.X - a1.X, d1y = a2.Y - a1.Y;
-        double d2x = b2.X - b1.X, d2y = b2.Y - b1.Y;
+        double chord = a.DistanceTo(b);
+        if (System.Math.Abs(bulge) < 1e-4) return chord;
 
-        double denom = d1x * d2y - d1y * d2x;
-        if (System.Math.Abs(denom) < 1e-9) return null;
-
-        double t = ((b1.X - a1.X) * d2y - (b1.Y - a1.Y) * d2x) / denom;
-        return new Point(a1.X + d1x * t, a1.Y + d1y * t);
+        double theta = 4 * System.Math.Atan(System.Math.Abs(bulge));
+        return chord * theta / (2 * System.Math.Sin(theta / 2));
     }
 }

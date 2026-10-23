@@ -297,4 +297,50 @@ public static class ContourMath
 
         return result;
     }
+
+    /// <summary>
+    /// Пересечение двух кривых (прямая или дуга, заданные как сегмент a1-a2 с bulgeA и b1-b2 с bulgeB),
+    /// продлённых до бесконечности. Возвращает точку, ближайшую к near. null — не пересекаются
+    /// </summary>
+    public static Point? IntersectCurves(
+        Point a1, Point a2, double bulgeA,
+        Point b1, Point b2, double bulgeB,
+        Point near)
+    {
+        var ca = CarrierMath.Make(new ContourSegment(a1, a2, bulgeA), 0);
+        var cb = CarrierMath.Make(new ContourSegment(b1, b2, bulgeB), 0);
+        if (!ca.HasValue || !cb.HasValue) return null;
+
+        Point? best = null;
+        double bd = double.MaxValue;
+        foreach (var p in CarrierMath.Intersect(ca.Value, cb.Value))
+        {
+            double d = p.DistanceTo(near);
+            if (d < bd) { bd = d; best = p; }
+        }
+        return best;
+    }
+
+    /// <summary>
+    /// Bulge той же дуги (сегмент a-b с bulge) между точками from и to, лежащими на её окружности.
+    /// Точки могут выходить за исходные концы (дуга удлиняется) или лежать внутри (укорачивается)
+    /// Для прямой возвращает 0
+    /// </summary>
+    public static double SubBulge(Point a, Point b, double bulge, Point from, Point to)
+    {
+        var s = new ContourSegment(a, b, bulge);
+        if (!s.IsArc) return 0;
+        if (from.DistanceTo(to) < GeometryConstants.Tolerance) return 0;
+
+        double a1 = Math.Atan2(from.Y - s.Center.Y, from.X - s.Center.X);
+        double a2 = Math.Atan2(to.Y - s.Center.Y, to.X - s.Center.X);
+        double d = (a2 - a1) * s.Sign;
+        d %= GeometryConstants.TwoPi;
+        if (d < 0) d += GeometryConstants.TwoPi;
+
+        double abs = Math.Abs(s.Sweep);
+        if (d > abs + (GeometryConstants.TwoPi - abs) / 2) d -= GeometryConstants.TwoPi;   // небольшой «откат» назад
+
+        return Math.Tan(d * s.Sign / 4.0);
+    }
 }

@@ -24,12 +24,7 @@ public sealed class ImpostAssembly
     {
         _owner = owner;
     }
-    /// <summary>
-    /// Пересчитывает доску импоста из central line и контура родителя.
-    /// central line — осевая линия импоста (от ImpostPlacementRule).
-    /// parentContour — контур LightSpace, в котором лежит импост.
-    /// width — ширина бруса.
-    /// </summary>
+
     public void Rebuild(Contour centerLine, double width, Contour? parentContour)
     {
         _width = width;
@@ -40,33 +35,18 @@ public sealed class ImpostAssembly
             return;
         }
 
-        // 1. Удлиняем central line в обе стороны, чтобы концы полосы вышли за
-        //    границы LightSpace. Тогда ClipPolygon обрежет по самим наклонным
-        //    граням, и доска дотянется до контура с обеих сторон (трапеция
-        //    вместо шестиугольника).
-        var extendedCenter = ContourMath.ExtendPolyline(centerLine.Vertices, ExtendDistance);
-
-        // 2. Полоса вокруг удлинённой central line шириной width
-        var bandVerts = ContourMath.OffsetBandCenter(extendedCenter, width);
-
-        // 3. Обрезаем по родительскому контуру (LightSpace), чтобы доска не вылезала
         if (parentContour != null)
         {
-            var clippedVerts = ContourMath.ClipPolygon(bandVerts, parentContour.Vertices);
-            if (clippedVerts.Count >= 3)
+            var clipped = ContourMath.ClipBandToContour(centerLine.Vertices, width, parentContour.Vertices);
+            if (clipped.Count >= 3)
             {
-                _board = new Board(width)
-                {
-                    PhysicalContour = Contour.CreateClosed(clippedVerts)
-                };
+                _board = new Board(width) { PhysicalContour = Contour.CreateClosed(clipped) };
                 return;
             }
         }
 
-        // Фолбэк — если обрезка не удалась или нет родителя
-        _board = new Board(width)
-        {
-            PhysicalContour = Contour.CreateClosed(bandVerts)
-        };
+        var extendedCenter = ContourMath.ExtendPolyline(centerLine.Vertices, ExtendDistance);
+        var bandVerts = ContourMath.OffsetBandCenter(extendedCenter, width);
+        _board = new Board(width) { PhysicalContour = Contour.CreateClosed(bandVerts) };
     }
 }

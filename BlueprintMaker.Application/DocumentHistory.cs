@@ -23,6 +23,15 @@ public sealed class DocumentHistory
     }
 
     /// <summary>
+    /// Добавляет команду в историю БЕЗ вызова Execute
+    /// </summary>
+    public void Record(IUndoableCommand command)
+    {
+        _undoStack.Push(command);
+        _redoStack.Clear();
+    }
+
+    /// <summary>
     /// Отменяет последнее действие
     /// </summary>
     public void Undo()

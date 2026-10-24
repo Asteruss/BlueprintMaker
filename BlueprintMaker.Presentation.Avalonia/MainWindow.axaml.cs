@@ -259,6 +259,13 @@ public partial class MainWindow : Window
             var result = await dialog.ShowDialog<double?>(this);
             ctx.SetOutput(result);
         });
+
+        vm.AskNewWindow.RegisterHandler(async ctx =>
+        {
+            var dialog = new NewWindowDialog();
+            var result = await dialog.ShowDialog<Contour?>(this);
+            ctx.SetOutput(result);
+        });
     }
 
 

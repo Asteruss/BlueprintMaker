@@ -1,0 +1,121 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:BlueprintMaker.Presentation.Avalonia.ViewModels"
+        x:Class="BlueprintMaker.Presentation.Avalonia.Views.NewWindowDialog"
+        x:DataType="vm:NewWindowDialogViewModel"
+        Title="Новое окно"
+        Width="700" SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+
+    <Window.Styles>
+        <Style Selector="TextBlock.caption">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Width" Value="170"/>
+        </Style>
+        <Style Selector="NumericUpDown">
+            <Setter Property="Width" Value="150"/>
+        </Style>
+    </Window.Styles>
+
+    <StackPanel Margin="16" Spacing="14">
+
+        <!-- Выбор формы -->
+        <ListBox ItemsSource="{Binding Shapes}"
+                 SelectedItem="{Binding SelectedShape}"
+                 Background="Transparent">
+            <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal"/>
+                </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:ShapeOption">
+                    <StackPanel Width="100" Spacing="4">
+                        <Border Height="72" CornerRadius="4" ClipToBounds="True">
+                            <Panel>
+                                <Image Source="{Binding Icon}" Stretch="Uniform"
+                                       IsVisible="{Binding Icon, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                            </Panel>
+                        </Border>
+                        <TextBlock Text="{Binding Title}" HorizontalAlignment="Center"
+                                   TextWrapping="Wrap" TextAlignment="Center"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <Separator/>
+
+        <!-- Прямоугольник -->
+        <StackPanel Spacing="8" IsVisible="{Binding IsRectangle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Classes="caption" Text="Ширина, мм"/>
+                <NumericUpDown Value="{Binding RectWidth}" Minimum="50" Maximum="10000" Increment="10" FormatString="0.##"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Classes="caption" Text="Высота, мм"/>
+                <NumericUpDown Value="{Binding RectHeight}" Minimum="50" Maximum="10000" Increment="10" FormatString="0.##"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Трапеция -->
+        <StackPanel Spacing="8" IsVisible="{Binding IsTrapezoid}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Classes="caption" Text="Широкое основание, мм"/>
+                <NumericUpDown Value="{Binding TrapBaseWidth}" Minimum="50" Maximum="10000" Increment="10" FormatString="0.##"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Classes="caption" Text="Узкое основание, мм"/>
+                <NumericUpDown Value="{Binding TrapNarrowWidth}" Minimum="10" Maximum="10000" Increment="10" FormatString="0.##"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Classes="caption" Text="Высота, мм"/>
+                <NumericUpDown Value="{Binding TrapHeight}" Minimum="50" Maximum="10000" Increment="10" FormatString="0.##"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Classes="caption" Text="Узкое основание"/>
+                <ComboBox ItemsSource="{Binding Sides}" SelectedItem="{Binding TrapSide}" Width="150">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:SideOption">
+                            <TextBlock Text="{Binding Title}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Овал / круг -->
+        <StackPanel Spacing="8" IsVisible="{Binding IsEllipse}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Classes="caption" Text="Радиус по горизонтали, мм"/>
+                <NumericUpDown Value="{Binding RadiusX}" Minimum="25" Maximum="5000" Increment="10" FormatString="0.##"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Classes="caption" Text="Радиус по вертикали, мм"/>
+                <NumericUpDown Value="{Binding RadiusY}" Minimum="25" Maximum="5000" Increment="10" FormatString="0.##"/>
+            </StackPanel>
+            <TextBlock Text="Одинаковые радиусы дают круг" Opacity="0.6"/>
+        </StackPanel>
+
+        <!-- Многоугольник -->
+        <StackPanel Spacing="8" IsVisible="{Binding IsPolygon}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Classes="caption" Text="Количество сторон"/>
+                <NumericUpDown Value="{Binding PolySides}" Minimum="3" Maximum="64" Increment="1" FormatString="0"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Classes="caption" Text="Длина стороны, мм"/>
+                <NumericUpDown Value="{Binding PolySideLength}" Minimum="10" Maximum="5000" Increment="10" FormatString="0.##"/>
+            </StackPanel>
+        </StackPanel>
+
+        <TextBlock Text="{Binding Error}" Foreground="#C62828" TextWrapping="Wrap"
+                   IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button Content="Создать" IsDefault="True" Click="Ok_Click"/>
+            <Button Content="Отмена" IsCancel="True" Click="Cancel_Click"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

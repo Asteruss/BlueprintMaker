@@ -38,10 +38,8 @@ public partial class MainViewModel : ReactiveObject
     [Reactive] private StreamGeometry? _gridGeometry;
     public ObservableCollection<FrameViewModel> Frames { get; } = new();
 
+    public Interaction<Unit, Contour?> AskNewWindow { get; } = new();
     public ReactiveCommand<Unit, Unit> CreateWindowCommand { get; }
-    public ReactiveCommand<Unit, Unit> CreateOvalWindowCommand { get; }
-    public ReactiveCommand<Unit, Unit> CreateWindowTCommand { get; }
-    public ReactiveCommand<Unit, Unit> CreateWindowHCommand { get; }
     public ReactiveCommand<Unit, Unit> UndoCommand { get; }
     public ReactiveCommand<Unit, Unit> RedoCommand { get; }
     public ReactiveCommand<decimal, Unit> MaterializeCommand { get; }
@@ -83,10 +81,13 @@ public partial class MainViewModel : ReactiveObject
 
         _modelChanged.Subscribe(_ => RefreshGeometry());
 
-        CreateWindowCommand = ReactiveCommand.Create(CreateWindow);
-        CreateWindowTCommand = ReactiveCommand.Create(CreateTrapezoidWindow);
-        CreateWindowHCommand = ReactiveCommand.Create(CreateHexagonWindow);
-        CreateOvalWindowCommand = ReactiveCommand.Create(CreateOvalWindow);
+        CreateWindowCommand = ReactiveCommand.CreateFromTask(async () =>
+        {
+            var contour = await AskNewWindow.Handle(Unit.Default);
+            if (contour == null) return;
+            CreateFrameFromContour(contour, "Окно создано");
+        });
+        CreateWindowCommand.ThrownExceptions.Subscribe(ex => StatusMessage = $"Ошибка: {ex.Message}");
 
         SetStartTypeCommand = ReactiveCommand.Create<JointEndType>(type =>
         {
@@ -326,14 +327,8 @@ public partial class MainViewModel : ReactiveObject
             .Subscribe(_ => _modelChanged.OnNext(Unit.Default));
     }
 
-    private void CreateWindow()
+    private void CreateFrameFromContour(Contour contour, string status)
     {
-        var vertices = new Point[] { new(50, 50), new(550, 50), new(550, 450), new(50, 450) };
-        var contour = Contour.CreateClosed(new[] {
-            new ContourVertex(vertices[0]), new ContourVertex(vertices[1]),
-            new ContourVertex(vertices[2]), new ContourVertex(vertices[3])
-        });
-
         _history.Execute(new CreateFrameCommand(_document, contour));
         Frames.Clear();
         if (_document.Root != null)
@@ -342,103 +337,9 @@ public partial class MainViewModel : ReactiveObject
             SelectedFrame = Frames[0];
             SelectedFrame.IsSelected = true;
         }
-        StatusMessage = "Окно создано";
+        StatusMessage = status;
         UpdateHistoryState();
         CenterWindow();
-        _modelChanged.OnNext(Unit.Default);
-    }
-
-    private void CreateTrapezoidWindow()
-    {
-        var vertices = new Point[] {
-            new(150, 50), new(450, 50), new(550, 450), new(50, 450)
-        };
-        var contour = Contour.CreateClosed(new[] {
-            new ContourVertex(vertices[0]), new ContourVertex(vertices[1]),
-            new ContourVertex(vertices[2]), new ContourVertex(vertices[3])
-        });
-
-        _history.Execute(new CreateFrameCommand(_document, contour));
-        Frames.Clear();
-        if (_document.Root != null)
-        {
-            Frames.Add(new FrameViewModel(_document.Root, _history, SelectElementCommand, AddJambCmd));
-            SelectedFrame = Frames[0];
-            SelectedFrame.IsSelected = true;
-        }
-        StatusMessage = "Окно-трапеция создано";
-        UpdateHistoryState();
-        CenterWindow();
-
-        _modelChanged.OnNext(Unit.Default);
-    }
-
-    private void CreateHexagonWindow()
-    {
-        double centerX = 300, centerY = 250, radius = 200;
-        var vertices = new Point[6];
-        for (int i = 0; i < 6; i++)
-        {
-            double angle = i * Math.PI / 3;
-            double x = Math.Round(centerX + radius * Math.Cos(angle), 2);
-            double y = Math.Round(centerY + radius * Math.Sin(angle), 2);
-            vertices[i] = new Point(x, y);
-        }
-        var contour = Contour.CreateClosed(new[] {
-            new ContourVertex(vertices[0]), new ContourVertex(vertices[1]),
-            new ContourVertex(vertices[2]), new ContourVertex(vertices[3]),
-            new ContourVertex(vertices[4]), new ContourVertex(vertices[5])
-        });
-
-        _history.Execute(new CreateFrameCommand(_document, contour));
-        Frames.Clear();
-        if (_document.Root != null)
-        {
-            Frames.Add(new FrameViewModel(_document.Root, _history, SelectElementCommand, AddJambCmd));
-            SelectedFrame = Frames[0];
-            SelectedFrame.IsSelected = true;
-        }
-        StatusMessage = "Правильный шестиугольник создан";
-        UpdateHistoryState();
-        CenterWindow();
-
-        _modelChanged.OnNext(Unit.Default);
-    }
-
-    private void CreateOvalWindow()
-    {
-        double centerX = 300, centerY = 250;
-        double a = 250;  // горизонтальная полуось
-        double b = 200;  // вертикальная полуось
-
-        var vertices = new Point[] {
-        new(centerX + a, centerY),  // правая
-        new(centerX, centerY - b),  // верхняя
-        new(centerX - a, centerY),  // левая
-        new(centerX, centerY + b),  // нижняя
-    };
-
-        double bulge = -Math.Tan(Math.PI / 8);
-
-        var contour = Contour.CreateClosed(new[] {
-        new ContourVertex(vertices[0], bulge),
-        new ContourVertex(vertices[1], bulge),
-        new ContourVertex(vertices[2], bulge),
-        new ContourVertex(vertices[3], bulge),
-    });
-
-        _history.Execute(new CreateFrameCommand(_document, contour));
-        Frames.Clear();
-        if (_document.Root != null)
-        {
-            Frames.Add(new FrameViewModel(_document.Root, _history, SelectElementCommand, AddJambCmd));
-            SelectedFrame = Frames[0];
-            SelectedFrame.IsSelected = true;
-        }
-        StatusMessage = "Овальное окно создано";
-        UpdateHistoryState();
-        CenterWindow();
-
         _modelChanged.OnNext(Unit.Default);
     }
 

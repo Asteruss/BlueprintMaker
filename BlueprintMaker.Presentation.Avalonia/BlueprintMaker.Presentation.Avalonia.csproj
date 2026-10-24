@@ -7,6 +7,18 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
+  <ItemGroup>
+    <None Remove="Assets\Shapes\ellipse.png" />
+    <None Remove="Assets\Shapes\polygon.png" />
+    <None Remove="Assets\Shapes\rectangle.png" />
+    <None Remove="Assets\Shapes\trapezoid.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\Shapes\ellipse.png" />
+    <AvaloniaResource Include="Assets\Shapes\polygon.png" />
+    <AvaloniaResource Include="Assets\Shapes\rectangle.png" />
+    <AvaloniaResource Include="Assets\Shapes\trapezoid.png" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.3.4" />

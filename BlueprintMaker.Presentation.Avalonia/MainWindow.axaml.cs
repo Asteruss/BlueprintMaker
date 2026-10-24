@@ -229,7 +229,7 @@ public partial class MainWindow : Window
         if (zoom <= 0) zoom = 1.0;
         double panX = AppSettings.Instance.PanX;
         double panY = AppSettings.Instance.PanY;
-        return new CorePoint((pos.X - panX) / zoom, (pos.Y - panY) / zoom);
+        return new CorePoint(Math.Ceiling((pos.X - panX) / zoom), Math.Ceiling((pos.Y - panY) / zoom));
     }
 
     private CorePoint GetFramePoint(PointerPressedEventArgs e)
@@ -239,7 +239,8 @@ public partial class MainWindow : Window
         if (zoom <= 0) zoom = 1.0;
         double panX = AppSettings.Instance.PanX;
         double panY = AppSettings.Instance.PanY;
-        return new CorePoint((pos.X - panX) / zoom, (pos.Y - panY) / zoom);
+        return new CorePoint(Math.Ceiling((pos.X - panX) / zoom), Math.Ceiling((pos.Y - panY) / zoom));
+
     }
 
     private void ResetZoom_Click(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)

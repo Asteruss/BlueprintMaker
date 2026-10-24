@@ -441,6 +441,12 @@
 													Value="{Binding $parent[ScrollViewer].((vm:MainViewModel)DataContext).SetEndTypeCommand}"/>
 										</Style>
 									</StackPanel.Styles>
+									<StackPanel Orientation="Horizontal" Spacing="10">
+										<TextBlock Text="{Binding BoardWidth, StringFormat=Ширина: {0:F0} мм}"/>
+										<TextBlock Text="{Binding BoardLength, StringFormat=Длина: {0:F0} мм}"/>
+									</StackPanel>
+
+									<Separator Margin="0,5"/>
 									<TextBlock Text="Стыки доски:" FontWeight="Bold"/>
 									<TextBlock Text="Начало:" VerticalAlignment="Center" Margin="5,0,0,0"/>
 									<StackPanel Orientation="Horizontal" Spacing="5">

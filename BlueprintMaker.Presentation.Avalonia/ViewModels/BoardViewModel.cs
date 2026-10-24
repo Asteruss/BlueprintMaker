@@ -24,5 +24,32 @@ public partial class BoardViewModel : SelectableElement
     {
         this.RaisePropertyChanged(nameof(FillColor));
     }
+    /// <summary>Ширина доски (от материализации).</summary>
+    public double BoardWidth => SourceBoard?.Width ?? 0;
+
+    /// <summary>
+    /// Длина доски — максимальное расстояние между двумя смежными ContourVertex
+    /// в PhysicalContour. Для прямоугольной доски — это длинная сторона (outer или inner).
+    /// </summary>
+    public double BoardLength
+    {
+        get
+        {
+            if (SourceBoard?.PhysicalContour == null) return 0;
+            var verts = SourceBoard.PhysicalContour.Vertices;
+            if (verts.Count < 2) return 0;
+
+            double maxDist = 0;
+            int n = verts.Count;
+            for (int i = 0; i < n; i++)
+            {
+                var a = verts[i].Position;
+                var b = verts[(i + 1) % n].Position;
+                var d = a.DistanceTo(b);
+                if (d > maxDist) maxDist = d;
+            }
+            return maxDist;
+        }
+    }
 }
 

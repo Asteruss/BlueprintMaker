@@ -29,13 +29,14 @@ public partial class FrameViewModel : SelectableElement
 
     public FrameAssembly Assembly => _frame.Assembly;
     [Reactive] private bool _isMaterialized;
-
+    public double Zoom => AppSettings.Instance.Zoom;
     public FrameViewModel(Frame frame, DocumentHistory history, ReactiveCommand<SelectableElement, Unit> selectCmd) : base(selectCmd)
     {
         _frame = frame;
         _history = history;
         _selectCmd = selectCmd;
         DisplayName = "Рама";
+        AppSettings.Instance.WhenAnyValue(x => x.Zoom).Subscribe(_ => this.RaisePropertyChanged(nameof(Zoom)));
         Refresh();
     }
 

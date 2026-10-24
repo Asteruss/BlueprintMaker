@@ -46,4 +46,6 @@ public static class GeometryExtensions
         }
         return geometry;
     }
+
+    public static global::Avalonia.Point ToAvaloniaPoint(this BlueprintMaker.Core.Geometry.Point point) => new(point.X, point.Y);
 }

@@ -78,7 +78,12 @@
 			<ItemsControl.ItemTemplate>
 				<DataTemplate x:DataType="vm:FrameViewModel">
 					<Panel Width="{Binding $parent[Canvas].Bounds.Width}"
-						   Height="{Binding $parent[Canvas].Bounds.Height}">
+						   Height="{Binding $parent[Canvas].Bounds.Height}"
+						   RenderTransformOrigin="0.5,0.5">
+						<Panel.RenderTransform>
+							<ScaleTransform ScaleX="{ReflectionBinding Zoom, Source={x:Static local:AppSettings.Instance}}"
+											ScaleY="{ReflectionBinding Zoom, Source={x:Static local:AppSettings.Instance}}"/>
+						</Panel.RenderTransform>
 
 						<!-- Скелет -->
 						<ItemsControl ItemsSource="{Binding Lines}" IsVisible="{Binding !IsMaterialized}">
@@ -303,18 +308,18 @@
 								<StackPanel Orientation="Horizontal" Spacing="10">
 									<TextBlock Text="Сетка" VerticalAlignment="Center" Width="120"/>
 									<ToggleSwitch
-											IsChecked="{Binding IsGridVisible, Source={x:Static local:AppSettings.Instance}}"
-											OnContent="Вкл" OffContent="Выкл"/>
+									IsChecked="{Binding IsGridVisible, Source={x:Static local:AppSettings.Instance}}"
+									OnContent="Вкл" OffContent="Выкл"/>
 								</StackPanel>
 								<StackPanel Orientation="Horizontal" Spacing="10" Margin="120,0,0,0"
 											IsVisible="{Binding IsGridVisible, Source={x:Static local:AppSettings.Instance}}">
 									<TextBlock Text="Размер ячейки:" VerticalAlignment="Center"/>
 									<NumericUpDown
-												Value="{Binding GridSize, Source={x:Static local:AppSettings.Instance}}"
-												Minimum="5"
-												Maximum="500"
-												FormatString="0"
-												Width="80"/>
+									Value="{Binding GridSize, Source={x:Static local:AppSettings.Instance}}"
+									Minimum="5"
+									Maximum="500"
+									FormatString="0"
+									Width="80"/>
 									<TextBlock Text="мм" VerticalAlignment="Center"/>
 								</StackPanel>
 							</StackPanel>

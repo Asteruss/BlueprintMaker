@@ -240,7 +240,7 @@ public partial class MainWindow : Window
 
     private void InsertImpost(LightSpace space, AxisOrientation orient) { _history.Execute(new InsertImpostCommand(space, orient, 0.5)); RenderTree(); }
     private void InsertSash(LightSpace space) { _history.Execute(new InsertSashCommand(space)); RenderTree(); }
-    private void DrawingCanvas_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e) { _lastRightClickPoint = e.GetPosition(DrawingCanvas); }
+    private void DrawingCanvas_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e) { _lastRightClickPoint = GetFramePoint(e); }
     private void SplitSegment_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem m && m.Tag is ValueTuple<PhysicalElement, int> t) { _history.Execute(new SplitSegmentCommand(t.Item1, t.Item2, new CorePoint(_lastRightClickPoint.X, _lastRightClickPoint.Y))); RenderTree(); } }
     private void AddJambExt_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem m && m.Tag is ValueTuple<PhysicalElement, int> t) { _history.Execute(new AddJambCommand(t.Item1, t.Item2, null)); RenderTree(); } }
     private void AddJambInt_Click(object sender, RoutedEventArgs e)
@@ -268,14 +268,14 @@ public partial class MainWindow : Window
 
     private void MainWindow_MouseMove(object sender, MouseEventArgs e)
     {
-        if (_draggedEllipse != null) { var p = e.GetPosition(DrawingCanvas); Canvas.SetLeft(_draggedEllipse, p.X - 6); Canvas.SetTop(_draggedEllipse, p.Y - 6); }
+        if (_draggedEllipse != null) { var p = GetFramePoint(e); Canvas.SetLeft(_draggedEllipse, p.X - 6); Canvas.SetTop(_draggedEllipse, p.Y - 6); }
     }
 
     private void MainWindow_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
         if (_draggedElement != null && _draggedEllipse != null)
         {
-            var pos = e.GetPosition(DrawingCanvas);
+            var pos = GetFramePoint(e);
             var corePos = new CorePoint(pos.X, pos.Y);
 
             // ПРИКЛЕИВАНИЕ (Snapping) к раме для Импостов
@@ -312,14 +312,14 @@ public partial class MainWindow : Window
 
     private void ArcControl_MouseMove(object sender, MouseEventArgs e)
     {
-        if (_draggedArcEllipse != null) { var p = e.GetPosition(DrawingCanvas); Canvas.SetLeft(_draggedArcEllipse, p.X - 5); Canvas.SetTop(_draggedArcEllipse, p.Y - 5); }
+        if (_draggedArcEllipse != null) { var p = GetFramePoint(e); Canvas.SetLeft(_draggedArcEllipse, p.X - 5); Canvas.SetTop(_draggedArcEllipse, p.Y - 5); }
     }
 
     private void ArcControl_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
         if (_draggedArcElement != null && _draggedArcEllipse != null)
         {
-            var pos = e.GetPosition(DrawingCanvas);
+            var pos = GetFramePoint(e);
             var corePos = new CorePoint(pos.X, pos.Y);
             _history.Execute(new MoveArcControlPointCommand(_draggedArcElement, _draggedArcSegmentIndex, corePos));
             this.MouseMove -= ArcControl_MouseMove; this.MouseLeftButtonUp -= ArcControl_MouseLeftButtonUp;

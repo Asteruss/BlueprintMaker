@@ -32,6 +32,13 @@ public partial class MainWindow : Window
         {
             mvm.UpdateCanvasSize(e.NewSize.Width, e.NewSize.Height);
         };
+
+        DrawingCanvas.PointerWheelChanged += (s, e) =>
+        {
+            double delta = e.Delta.Y > 0 ? 0.1 : -0.1;
+            AppSettings.Instance.Zoom = Math.Clamp(AppSettings.Instance.Zoom + delta, 0.2, 5.0);
+            e.Handled = true;
+        };
     }
 
     private void ElementPath_PointerPressed(object? sender, PointerPressedEventArgs e)
@@ -40,13 +47,13 @@ public partial class MainWindow : Window
         {
             if (el is WireframeLine && DataContext is MainViewModel mvm)
             {
-                var pos = e.GetPosition(DrawingCanvas);
+                var pos = GetFramePoint(e);
                 mvm.LastClickPoint = new CorePoint(pos.X, pos.Y);
             }
 
             if (el is ImpostSegment impSeg)
             {
-                var pos = e.GetPosition(DrawingCanvas);
+                var pos = GetFramePoint(e);
                 if (DataContext is MainViewModel mvm2)
                     mvm2.LastClickPoint = new CorePoint(pos.X, pos.Y);
 
@@ -78,7 +85,7 @@ public partial class MainWindow : Window
     {
         if (_draggingHandle != null)
         {
-            var pos = e.GetPosition(DrawingCanvas);
+            var pos = GetFramePoint(e).ToAvaloniaPoint();
             var dx = pos.X - _dragStartCanvasPos.X;
             var dy = pos.Y - _dragStartCanvasPos.Y;
             _draggingHandle.SourceFrame.MoveBy(dx, dy);
@@ -91,7 +98,7 @@ public partial class MainWindow : Window
 
         if (_draggingImpost != null)
         {
-            var pos = e.GetPosition(DrawingCanvas);
+            var pos = GetFramePoint(e);
             var impost = _draggingImpost;
             var parent = impost.Parent;
 
@@ -117,7 +124,7 @@ public partial class MainWindow : Window
 
         if (_draggingNode != null)
         {
-            var pos = e.GetPosition(DrawingCanvas);
+            var pos = GetFramePoint(e);
             var corePos = new CorePoint(pos.X, pos.Y);
 
             _draggingNode.DragTo(corePos);
@@ -177,14 +184,33 @@ public partial class MainWindow : Window
         if (sender is Control ctrl && ctrl.DataContext is FrameViewModel fvm && fvm.FrameDragHandle != null)
         {
             _draggingHandle = fvm.FrameDragHandle;
-            _dragStartCanvasPos = e.GetPosition(DrawingCanvas);
+            _dragStartCanvasPos = GetFramePoint(e).ToAvaloniaPoint();
             var bounds = _draggingHandle.SourceFrame.GetContour().BoundingBox;
             _dragStartFrameMin = new CorePoint(bounds.MinX, bounds.MinY);
             e.Handled = true;
         }
     }
+
+    private CorePoint GetFramePoint(PointerEventArgs e)
+    {
+        var pos = e.GetPosition(DrawingCanvas);
+        double zoom = AppSettings.Instance.Zoom;
+        if (zoom <= 0) zoom = 1.0;
+        return new CorePoint(pos.X / zoom, pos.Y / zoom);
+    }
+
+    private CorePoint GetFramePoint(PointerPressedEventArgs e)
+    {
+        var pos = e.GetPosition(DrawingCanvas);
+        double zoom = AppSettings.Instance.Zoom;
+        if (zoom <= 0) zoom = 1.0;
+        return new CorePoint(pos.X / zoom, pos.Y / zoom);
+    }
+
     private void ResetZoom_Click(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
     {
         AppSettings.Instance.Zoom = 1.0;
     }
+
+
 }

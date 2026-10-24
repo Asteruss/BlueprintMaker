@@ -19,6 +19,8 @@ public partial class MainWindow : Window
     private FrameDragHandle? _draggingHandle;
     private global::Avalonia.Point _dragStartCanvasPos;
     private CorePoint _dragStartFrameMin;
+    private bool _panning;
+    private global::Avalonia.Point _panStartPos;
     public MainWindow()
     {
         InitializeComponent();
@@ -39,6 +41,24 @@ public partial class MainWindow : Window
             AppSettings.Instance.Zoom = Math.Clamp(AppSettings.Instance.Zoom + delta, 0.2, 5.0);
             e.Handled = true;
         };
+
+        DrawingCanvas.PointerPressed += Canvas_PointerPressed;
+    }
+
+    private void Canvas_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.KeyModifiers == KeyModifiers.Control)
+        {
+            _panning = true;
+            _panStartPos = e.GetPosition(DrawingCanvas);
+            e.Handled = true;
+            return;
+        }
+
+        if (!e.Handled && DataContext is MainViewModel mvm)
+        {
+            mvm.Unselect();
+        }
     }
 
     private void ElementPath_PointerPressed(object? sender, PointerPressedEventArgs e)
@@ -83,6 +103,14 @@ public partial class MainWindow : Window
 
     private void MainWindow_PointerMoved(object? sender, PointerEventArgs e)
     {
+        if (_panning)
+        {
+            var pos = e.GetPosition(DrawingCanvas);
+            AppSettings.Instance.PanX += pos.X - _panStartPos.X;
+            AppSettings.Instance.PanY += pos.Y - _panStartPos.Y;
+            _panStartPos = pos;
+            return;
+        }
         if (_draggingHandle != null)
         {
             var pos = GetFramePoint(e).ToAvaloniaPoint();
@@ -136,6 +164,7 @@ public partial class MainWindow : Window
 
     private void MainWindow_PointerReleased(object? sender, PointerReleasedEventArgs e)
     {
+        _panning = false;
         if (_draggingHandle != null)
         {
             var finalBounds = _draggingHandle.SourceFrame.GetContour().BoundingBox;
@@ -196,7 +225,9 @@ public partial class MainWindow : Window
         var pos = e.GetPosition(DrawingCanvas);
         double zoom = AppSettings.Instance.Zoom;
         if (zoom <= 0) zoom = 1.0;
-        return new CorePoint(pos.X / zoom, pos.Y / zoom);
+        double panX = AppSettings.Instance.PanX;
+        double panY = AppSettings.Instance.PanY;
+        return new CorePoint((pos.X - panX) / zoom, (pos.Y - panY) / zoom);
     }
 
     private CorePoint GetFramePoint(PointerPressedEventArgs e)
@@ -204,7 +235,9 @@ public partial class MainWindow : Window
         var pos = e.GetPosition(DrawingCanvas);
         double zoom = AppSettings.Instance.Zoom;
         if (zoom <= 0) zoom = 1.0;
-        return new CorePoint(pos.X / zoom, pos.Y / zoom);
+        double panX = AppSettings.Instance.PanX;
+        double panY = AppSettings.Instance.PanY;
+        return new CorePoint((pos.X - panX) / zoom, (pos.Y - panY) / zoom);
     }
 
     private void ResetZoom_Click(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)

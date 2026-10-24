@@ -81,8 +81,12 @@
 						   Height="{Binding $parent[Canvas].Bounds.Height}"
 						   RenderTransformOrigin="0.5,0.5">
 						<Panel.RenderTransform>
-							<ScaleTransform ScaleX="{ReflectionBinding Zoom, Source={x:Static local:AppSettings.Instance}}"
-											ScaleY="{ReflectionBinding Zoom, Source={x:Static local:AppSettings.Instance}}"/>
+							<TransformGroup>
+								<ScaleTransform ScaleX="{ReflectionBinding Zoom, Source={x:Static local:AppSettings.Instance}}"
+												ScaleY="{ReflectionBinding Zoom, Source={x:Static local:AppSettings.Instance}}"/>
+								<TranslateTransform X="{ReflectionBinding PanX, Source={x:Static local:AppSettings.Instance}}"
+													Y="{ReflectionBinding PanY, Source={x:Static local:AppSettings.Instance}}"/>
+							</TransformGroup>
 						</Panel.RenderTransform>
 
 						<!-- Скелет -->

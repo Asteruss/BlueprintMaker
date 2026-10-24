@@ -17,4 +17,6 @@ public partial class AppSettings : ReactiveObject
     [Reactive] private bool _isGridVisible = false;
     [Reactive] private double _gridSize = 50.0;
     [Reactive] private bool _isDimensionsVisible = false;
+    [Reactive] private double _panX = 0;
+    [Reactive] private double _panY = 0;
 }

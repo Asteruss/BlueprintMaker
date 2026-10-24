@@ -481,6 +481,13 @@ public partial class MainViewModel : ReactiveObject
                 DeselectAll(board);
     }
 
+    public void Unselect()
+    {
+        SelectedElement = null;
+        foreach (var frame in Frames)
+            DeselectAll(frame);
+    }
+
     /// <summary>
     /// Выполняет Undo-команду через историю. Используется code-behind (MainWindow)
     /// для сохранения финального результата drag в истории

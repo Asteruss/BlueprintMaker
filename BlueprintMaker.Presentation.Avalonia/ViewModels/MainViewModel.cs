@@ -1,4 +1,5 @@
-﻿using BlueprintMaker.Application;
+﻿using Avalonia.Media;
+using BlueprintMaker.Application;
 using BlueprintMaker.Application.Commands;
 using BlueprintMaker.Core.Geometry;
 using BlueprintMaker.Domain.Models;
@@ -12,6 +13,7 @@ using System.Collections.ObjectModel;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using AvaloniaPoint = global::Avalonia.Point;
 
 namespace BlueprintMaker.Presentation.Avalonia.ViewModels;
 
@@ -33,6 +35,7 @@ public partial class MainViewModel : ReactiveObject
     [Reactive] private double _canvasWidth;
     [Reactive] private double _canvasHeight;
     private bool _firstCentered = false;
+    [Reactive] private StreamGeometry? _gridGeometry;
     public ObservableCollection<FrameViewModel> Frames { get; } = new();
 
     public ReactiveCommand<Unit, Unit> CreateWindowCommand { get; }
@@ -68,7 +71,11 @@ public partial class MainViewModel : ReactiveObject
         var canSplitFrmae = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is WireframeLine);
         var canToggleArc = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is WireframeLine || el is ImpostSegment);
         var canInsertSash = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is LightSpaceViewModel);
+        
+        AppSettings.Instance.WhenAnyValue(x => x.IsGridVisible, x => x.GridSize,
+                                  x => x.Zoom, x => x.PanX, x => x.PanY).Subscribe(_ => UpdateGridGeometry());
 
+        this.WhenAnyValue(x => x.CanvasWidth, x => x.CanvasHeight).Subscribe(_ => UpdateGridGeometry());
 
         _modelChanged.Subscribe(_ => RefreshGeometry());
 
@@ -464,6 +471,52 @@ public partial class MainViewModel : ReactiveObject
             frame.Refresh();
 
         this.RaisePropertyChanged(nameof(Frames));
+    }
+
+    /// <summary>
+    /// Строит сетку для видимой области canvas (с учётом Zoom и Pan).
+    /// Линии — в Frame координатах, от (startX,startY) до (endX,endY) с шагом GridSize.
+    /// </summary>
+    private void UpdateGridGeometry()
+    {
+        if (!AppSettings.Instance.IsGridVisible || AppSettings.Instance.GridSize <= 0
+            || CanvasWidth <= 0 || CanvasHeight <= 0)
+        {
+            GridGeometry = null;
+            return;
+        }
+
+        double gridSize = (double)AppSettings.Instance.GridSize;
+        double zoom = AppSettings.Instance.Zoom;
+        if (zoom == 0) zoom = 1.0;
+        double panX = AppSettings.Instance.PanX;
+        double panY = AppSettings.Instance.PanY;
+
+        // Видимая область в Frame координатах
+        double startX = Math.Floor((-panX / zoom) / gridSize) * gridSize;
+        double startY = Math.Floor((-panY / zoom) / gridSize) * gridSize;
+        double endX = Math.Ceiling(((CanvasWidth - panX) / zoom) / gridSize) * gridSize;
+        double endY = Math.Ceiling(((CanvasHeight - panY) / zoom) / gridSize) * gridSize;
+
+        var geometry = new StreamGeometry();
+        using (var ctx = geometry.Open())
+        {
+            // Вертикальные
+            for (double x = startX; x <= endX; x += gridSize)
+            {
+                ctx.BeginFigure(new AvaloniaPoint(x, startY), false);
+                ctx.LineTo(new AvaloniaPoint(x, endY));
+                ctx.EndFigure(false);
+            }
+            // Горизонтальные
+            for (double y = startY; y <= endY; y += gridSize)
+            {
+                ctx.BeginFigure(new AvaloniaPoint(startX, y), false);
+                ctx.LineTo(new AvaloniaPoint(endX, y));
+                ctx.EndFigure(false);
+            }
+        }
+        GridGeometry = geometry;
     }
 
     private void DeselectAll(SelectableElement element)

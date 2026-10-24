@@ -2,6 +2,7 @@
 using Avalonia;
 using BlueprintMaker.Core.Geometry;
 using System;
+using AvaloniaPoint = global::Avalonia.Point;
 
 namespace BlueprintMaker.Presentation.Avalonia;
 
@@ -15,7 +16,7 @@ public static class GeometryExtensions
             var vertices = contour.Vertices;
             if (vertices.Count == 0) return geometry;
 
-            ctx.BeginFigure(new global::Avalonia.Point(vertices[0].Position.X, vertices[0].Position.Y), isFilled: contour.IsClosed);
+            ctx.BeginFigure(new AvaloniaPoint(vertices[0].Position.X, vertices[0].Position.Y), isFilled: contour.IsClosed);
 
             for (int i = 0; i < vertices.Count; i++)
             {
@@ -26,7 +27,7 @@ public static class GeometryExtensions
 
                 if (Math.Abs(from.Bulge) < 0.0001)
                 {
-                    ctx.LineTo(new global::Avalonia.Point(to.Position.X, to.Position.Y));
+                    ctx.LineTo(new AvaloniaPoint(to.Position.X, to.Position.Y));
                 }
                 else
                 {
@@ -37,7 +38,7 @@ public static class GeometryExtensions
                     var sweepDir = from.Bulge > 0 ? SweepDirection.Clockwise : SweepDirection.CounterClockwise;
 
                     ctx.ArcTo(
-                        new global::Avalonia.Point(to.Position.X, to.Position.Y),
+                        new AvaloniaPoint(to.Position.X, to.Position.Y),
                         new Size(radius, radius),
                         0, isLargeArc, sweepDir);
                 }
@@ -47,5 +48,5 @@ public static class GeometryExtensions
         return geometry;
     }
 
-    public static global::Avalonia.Point ToAvaloniaPoint(this BlueprintMaker.Core.Geometry.Point point) => new(point.X, point.Y);
+    public static AvaloniaPoint ToAvaloniaPoint(this BlueprintMaker.Core.Geometry.Point point) => new(point.X, point.Y);
 }

@@ -8,6 +8,8 @@ using BlueprintMaker.Domain.Models.Rules;
 using BlueprintMaker.Presentation.Avalonia.ViewModels;
 using System;
 using CorePoint = BlueprintMaker.Core.Geometry.Point;
+using AvaloniaPoint = global::Avalonia.Point;
+
 
 namespace BlueprintMaker.Presentation.Avalonia;
 
@@ -17,10 +19,10 @@ public partial class MainWindow : Window
     private NodeViewModel? _draggingNode;
     private double _dragStartRelativePos;
     private FrameDragHandle? _draggingHandle;
-    private global::Avalonia.Point _dragStartCanvasPos;
+    private AvaloniaPoint _dragStartCanvasPos;
     private CorePoint _dragStartFrameMin;
     private bool _panning;
-    private global::Avalonia.Point _panStartPos;
+    private AvaloniaPoint _panStartPos;
     public MainWindow()
     {
         InitializeComponent();

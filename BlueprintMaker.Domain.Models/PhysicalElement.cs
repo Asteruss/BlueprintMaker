@@ -30,7 +30,7 @@ public abstract class PhysicalElement : WindowNodeBase, IMaterializable
     protected virtual void OnMaterialized() { }
 
     public override double GetPhysicalWidth() => Width == 0 ? GeometryConstants.DisplayWidth : Width;
-    
+
 
     public void MoveNode(int vertexIndex, Point newPosition)
     {
@@ -115,32 +115,22 @@ public abstract class PhysicalElement : WindowNodeBase, IMaterializable
     /// <summary>
     /// Добавляет доборник к сегменту стены.
     /// </summary>
-    /// <param name="startSegment">Индекс сегмента, к которому крепится доборник</param>
-    /// <param name="targetSpace">Целевое световое пространство (если внутренний). Null = внешний.</param>
-    /// <param name="segmentCount">Количество сегментов</param>
-    public Jamb AddJamb(int startSegment, LightSpace? targetSpace = null, int segmentCount = 1)
+    public JambResult AddJamb(int segmentIndex, LightSpace? targetSpace = null) =>
+        targetSpace != null ? targetSpace.InsertJamb(segmentIndex) : AddExternalJamb(segmentIndex);
+
+    public JambResult AddExternalJamb(int segmentIndex)
     {
-        if (targetSpace == null)
-        {
-            // внешний: знак +1 (наружу)
-            var externalJamb = new Jamb(Guid.NewGuid(), this, this, startSegment, segmentCount, 1);
-            AddChildInternal(externalJamb);
-            return externalJamb;
-        }
-        else
-        {
-            if (targetSpace.Children.Count > 0)
-                throw new InvalidOperationException("Пространство уже занято.");
+        var contour = GetContour();
+        if (!contour.IsClosed)
+            throw new InvalidOperationException("Внешний добор возможен только у замкнутого контура.");
+        if (segmentIndex < 0 || segmentIndex >= contour.Vertices.Count)
+            throw new ArgumentOutOfRangeException(nameof(segmentIndex));
+        if (Children.OfType<Jamb>().Any(j => j.Side == JambSide.Outer && j.SegmentIndex == segmentIndex))
+            throw new InvalidOperationException("На этом сегменте уже есть внешний добор.");
 
-            // внутренний: знак -1 (внутрь)
-            var internalJamb = new Jamb(Guid.NewGuid(), targetSpace, this, startSegment, segmentCount, -1);
-            targetSpace.AddChildInternal(internalJamb);
-
-            var remainingSpace = new LightSpace(Guid.NewGuid(), targetSpace);
-            targetSpace.AddChildInternal(remainingSpace);
-
-            return internalJamb;
-        }
+        var jamb = new Jamb(Guid.NewGuid(), segmentIndex, JambSide.Outer);
+        AddChildInternal(jamb);
+        return new JambResult(jamb, null);
     }
 
     protected List<ContourVertex> EnsureClockwise(List<ContourVertex> vertices)

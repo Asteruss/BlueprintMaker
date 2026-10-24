@@ -343,4 +343,192 @@ public static class ContourMath
 
         return Math.Tan(d * s.Sign / 4.0);
     }
+    /// <summary>
+    /// Добор снаружи: полоса шириной width вдоль сегмента, наружу от контура
+    /// Торцы идут по продолжению соседних сегментов родителя
+    /// </summary>
+    public static Contour? ExternalEdgeStrip(Contour parent, int segmentIndex, double width)
+    {
+        var pv = parent.Vertices;
+        int n = pv.Count;
+        if (width <= 0 || n < 2 || segmentIndex < 0 || segmentIndex >= n) return null;
+
+        var segs = SegmentMath.BuildSegs(pv, true);
+        var s = segs[segmentIndex];
+        if (s.A.DistanceTo(s.B) < 0.01) return null;
+
+        double d = CalculateSignedArea(pv) < 0 ? width : -width;   // наружу (инверсия Inset)
+
+        var outer = CarrierMath.Make(s, d);
+        if (!outer.HasValue) return null;
+
+        var startOuter = SegmentMath.Shift(s.A, s.LeftNormal(s.A), d);
+        var endOuter = SegmentMath.Shift(s.B, s.LeftNormal(s.B), d);
+
+        var cPrev = CarrierMath.Make(segs[(segmentIndex - 1 + n) % n], 0);
+        var cNext = CarrierMath.Make(segs[(segmentIndex + 1) % n], 0);
+        if (cPrev.HasValue) startOuter = Nearest(CarrierMath.Intersect(outer.Value, cPrev.Value), startOuter);
+        if (cNext.HasValue) endOuter = Nearest(CarrierMath.Intersect(outer.Value, cNext.Value), endOuter);
+
+        double ob = SubBulge(s.A, s.B, s.Bulge, startOuter, endOuter);
+
+        var verts = new List<ContourVertex>
+    {
+        new(s.A, s.Bulge),
+        new(s.B, 0),
+        new(endOuter, -ob),
+        new(startOuter, 0),
+    };
+        return PolylineUtils.MakeContour(verts);
+    }
+
+    private static Point Nearest(List<Point> candidates, Point near)
+    {
+        var best = near;
+        double bd = double.MaxValue;
+        foreach (var p in candidates)
+        {
+            double dist = p.DistanceTo(near);
+            if (dist < bd) { bd = dist; best = p; }
+        }
+        return best;
+    }
+
+    /// <summary>Длина самой длинной кромки контура (дуги считаются по длине дуги)</summary>
+    public static double LongestEdgeLength(Contour c)
+    {
+        double max = 0;
+        foreach (var s in SegmentMath.BuildSegs(c.Vertices, true))
+        {
+            double len = s.IsArc ? s.R * Math.Abs(s.Sweep) : s.A.DistanceTo(s.B);
+            if (len > max) max = len;
+        }
+        return max;
+    }
+    /// <summary>
+    /// Отрезает от контура полосу шириной width вдоль сегмента segmentIndex.
+    /// strip — добор (содержит сам сегмент), remainder — остаток света.
+    /// Края полосы обрезаются по соседним сегментам родителя.
+    /// </summary>
+    public static (Contour? strip, Contour? remainder) CutEdgeStrip(Contour parent, int segmentIndex, double width)
+    {
+        var pv = parent.Vertices;
+        int n = pv.Count;
+        if (width <= 0 || segmentIndex < 0 || segmentIndex >= n) return (null, null);
+
+        var a = pv[segmentIndex];
+        var b = pv[(segmentIndex + 1) % n];
+        if (a.Position.DistanceTo(b.Position) < 0.01) return (null, null);
+
+        // Внутрь = влево по ходу при положительной площади (та же конвенция, что в Inset)
+        double d = CalculateSignedArea(pv) < 0 ? -width : width;
+
+        var allSegs = SegmentMath.BuildSegs(pv, true);
+        if (allSegs[segmentIndex].IsArc)
+            return CutArcStrip(parent, allSegs, segmentIndex, d);
+
+        var edge = new List<ContourVertex> { new(a.Position, a.Bulge), new(b.Position, 0) };
+        var ext = ExtendPolyline(edge, GeometryConstants.ExtendDistance);
+        var offsetLine = PolylineOffset.Offset(ext, d);
+
+        var trimmed = PolylineOffset.TrimToParent(offsetLine, pv);
+        if (trimmed == null) return (null, null);
+
+        var (f, bk) = ContourSlicer.Slice(pv, trimmed);
+        if (f == null || bk == null) return (null, null);
+
+        // Добор — та часть, на границе которой лежит исходный сегмент
+        var mid = GetSegmentAnchor(parent, segmentIndex).Position;
+        return LiesOnBoundary(f, mid) ? (f, bk) : (bk, f);
+    }
+
+    /// <summary>Середина сегмента и единичная нормаль внутрь контура (для стрелок создания добора).</summary>
+    public static (Point Position, Point Inward) GetSegmentAnchor(Contour contour, int segmentIndex)
+    {
+        var v = contour.Vertices;
+        int n = v.Count;
+        var seg = new ContourSegment(v[segmentIndex].Position, v[(segmentIndex + 1) % n].Position, v[segmentIndex].Bulge);
+
+        Point mid;
+        if (seg.IsArc)
+        {
+            double ang = seg.StartAngle + seg.Sweep / 2;
+            mid = new Point(seg.Center.X + seg.R * Math.Cos(ang), seg.Center.Y + seg.R * Math.Sin(ang));
+        }
+        else
+        {
+            mid = new Point((seg.A.X + seg.B.X) / 2, (seg.A.Y + seg.B.Y) / 2);
+        }
+
+        var left = seg.LeftNormal(mid);
+        bool ccw = CalculateSignedArea(v) >= 0;
+        return (mid, ccw ? left : new Point(-left.X, -left.Y));
+    }
+
+    private static bool LiesOnBoundary(Contour c, Point p)
+    {
+        foreach (var s in SegmentMath.BuildSegs(c.Vertices, true))
+            if (s.DistanceTo(p, out _) < 0.01) return true;
+        return false;
+    }
+
+    /// <summary>
+    /// Добор вдоль дуги: края идут по соседям, только пока те реально пересекают смещённую дугу,
+    /// иначе — торцевая черта от конца дуги до её смещённой точки.
+    /// </summary>
+    private static (Contour? strip, Contour? remainder) CutArcStrip(
+        Contour parent, ContourSegment[] segs, int idx, double d)
+    {
+        int n = segs.Length;
+        var s = segs[idx];
+
+        var carrier = CarrierMath.Make(s, d);
+        if (!carrier.HasValue) return (null, null);
+
+        var aOff = SegmentMath.Shift(s.A, s.LeftNormal(s.A), d);
+        var bOff = SegmentMath.Shift(s.B, s.LeftNormal(s.B), d);
+
+        Point? startHit = NeighborHit(carrier.Value, segs[(idx - 1 + n) % n], aOff);
+        Point? endHit = NeighborHit(carrier.Value, segs[(idx + 1) % n], bOff);
+
+        Point sp = startHit ?? aOff;
+        Point ep = endHit ?? bOff;
+        if (sp.DistanceTo(ep) < 0.01) return (null, null);
+
+        double bulge = SubBulge(s.A, s.B, s.Bulge, sp, ep);
+
+        var cutter = new List<ContourVertex>();
+        if (!startHit.HasValue) cutter.Add(new ContourVertex(s.A, 0));   // торец: A -> A'
+        cutter.Add(new ContourVertex(sp, bulge));
+        cutter.Add(new ContourVertex(ep, 0));
+        if (!endHit.HasValue) cutter.Add(new ContourVertex(s.B, 0));     // торец: B' -> B
+
+        var (f, bk) = ContourSlicer.Slice(parent.Vertices, cutter);
+        if (f == null || bk == null) return (null, null);
+
+        var mid = GetSegmentAnchor(parent, idx).Position;
+        return LiesOnBoundary(f, mid) ? (f, bk) : (bk, f);
+    }
+
+    /// <summary>
+    /// Пересечение смещённой кривой с реальным сегментом соседа (не с его продолжением)
+    /// Возвращает ближайшую к near точку или null
+    /// </summary>
+    private static Point? NeighborHit(Carrier offsetCarrier, ContourSegment neighbor, Point near)
+    {
+        var nc = CarrierMath.Make(neighbor, 0);
+        if (!nc.HasValue) return null;
+
+        Point? best = null;
+        double bd = double.MaxValue;
+        foreach (var p in CarrierMath.Intersect(offsetCarrier, nc.Value))
+        {
+            double t = neighbor.Param(p);
+            if (t < -1e-6 || t > 1 + 1e-6) continue;   // только в пределах сегмента соседа
+
+            double dist = p.DistanceTo(near);
+            if (dist < bd) { bd = dist; best = p; }
+        }
+        return best;
+    }
 }

@@ -59,7 +59,11 @@ public partial class MainViewModel : ReactiveObject
     public ReactiveCommand<Unit, Unit> SplitImpostEqualCommand { get; }
     public ReactiveCommand<Unit, Unit> SplitImpostAtClickCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleArcCommand { get; }
+    public ReactiveCommand<JambSlot, Unit> AddJambCmd { get; }
+    private double _lastJambWidth = 20;
 
+    /// <summary>Вход — предлагаемая ширина, выход — введённая ширина (null — отмена)</summary>
+    public Interaction<double, double?> AskJambWidth { get; } = new();
     public MainViewModel()
     {
         var canUndoObservable = this.WhenAnyValue(x => x.CanUndo);
@@ -71,10 +75,10 @@ public partial class MainViewModel : ReactiveObject
         var canSplitFrmae = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is WireframeLine);
         var canToggleArc = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is WireframeLine || el is ImpostSegment);
         var canInsertSash = this.WhenAnyValue(x => x.SelectedElement).Select(el => el is LightSpaceViewModel);
-        
+
         AppSettings.Instance.WhenAnyValue(x => x.IsGridVisible, x => x.GridSize,
                                   x => x.Zoom, x => x.PanX, x => x.PanY).Subscribe(_ => UpdateGridGeometry());
-
+        this.WhenAnyValue(x => x.SelectedElement).Subscribe(el => SelectedFrame?.SetJambTarget(ResolveNode(el)));
         this.WhenAnyValue(x => x.CanvasWidth, x => x.CanvasHeight).Subscribe(_ => UpdateGridGeometry());
 
         _modelChanged.Subscribe(_ => RefreshGeometry());
@@ -191,6 +195,19 @@ public partial class MainViewModel : ReactiveObject
             }
 
         }, canSplitImpost);
+
+        AddJambCmd = ReactiveCommand.CreateFromTask<JambSlot>(async slot =>
+        {
+            var width = await AskJambWidth.Handle(_lastJambWidth);
+            if (width is not > 0) return;
+
+            _lastJambWidth = width.Value;
+            _history.Execute(new AddJambCommand(slot.Wall, slot.SegmentIndex, slot.Space, width.Value));
+            _modelChanged.OnNext(Unit.Default);
+            UpdateHistoryState();
+            StatusMessage = $"Добор добавлен ({width.Value:0.##} мм)";
+        });
+
 
         UndoCommand = ReactiveCommand.Create(() =>
         {
@@ -321,7 +338,7 @@ public partial class MainViewModel : ReactiveObject
         Frames.Clear();
         if (_document.Root != null)
         {
-            Frames.Add(new FrameViewModel(_document.Root, _history, SelectElementCommand));
+            Frames.Add(new FrameViewModel(_document.Root, _history, SelectElementCommand, AddJambCmd));
             SelectedFrame = Frames[0];
             SelectedFrame.IsSelected = true;
         }
@@ -345,7 +362,7 @@ public partial class MainViewModel : ReactiveObject
         Frames.Clear();
         if (_document.Root != null)
         {
-            Frames.Add(new FrameViewModel(_document.Root, _history, SelectElementCommand));
+            Frames.Add(new FrameViewModel(_document.Root, _history, SelectElementCommand, AddJambCmd));
             SelectedFrame = Frames[0];
             SelectedFrame.IsSelected = true;
         }
@@ -377,7 +394,7 @@ public partial class MainViewModel : ReactiveObject
         Frames.Clear();
         if (_document.Root != null)
         {
-            Frames.Add(new FrameViewModel(_document.Root, _history, SelectElementCommand));
+            Frames.Add(new FrameViewModel(_document.Root, _history, SelectElementCommand, AddJambCmd));
             SelectedFrame = Frames[0];
             SelectedFrame.IsSelected = true;
         }
@@ -414,7 +431,7 @@ public partial class MainViewModel : ReactiveObject
         Frames.Clear();
         if (_document.Root != null)
         {
-            Frames.Add(new FrameViewModel(_document.Root, _history, SelectElementCommand));
+            Frames.Add(new FrameViewModel(_document.Root, _history, SelectElementCommand, AddJambCmd));
             SelectedFrame = Frames[0];
             SelectedFrame.IsSelected = true;
         }
@@ -473,6 +490,15 @@ public partial class MainViewModel : ReactiveObject
         this.RaisePropertyChanged(nameof(Frames));
     }
 
+    private static IWindowNode? ResolveNode(SelectableElement? el) => el switch
+    {
+        FrameViewModel f => f.Frame,
+        SashViewModel s => s.SourceSash,       
+        ImpostViewModel s => s.SourceImpost,
+        LightSpaceViewModel ls => ls.SourceSpace,
+        _ => null
+    };
+
     /// <summary>
     /// Строит сетку для видимой области canvas (с учётом Zoom и Pan).
     /// Линии — в Frame координатах, от (startX,startY) до (endX,endY) с шагом GridSize.
@@ -526,11 +552,20 @@ public partial class MainViewModel : ReactiveObject
             DeselectAll(child);
 
         if (element is ImpostViewModel imp)
+        {
             foreach (var seg in imp.Segments)
                 DeselectAll(seg);
+            foreach (var board in imp.Boards)
+                DeselectAll(board);
+        }
+
 
         if (element is SashViewModel sash)
             foreach (var board in sash.Boards)
+                DeselectAll(board);
+
+        if (element is JambViewModel jamb)
+            foreach (var board in jamb.Boards)
                 DeselectAll(board);
     }
 

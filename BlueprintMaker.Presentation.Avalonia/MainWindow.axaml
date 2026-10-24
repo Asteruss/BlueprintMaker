@@ -237,6 +237,87 @@
 								</ItemsControl.ItemTemplate>
 							</ItemsControl>
 
+							<ItemsControl ItemsSource="{Binding Jambs}">
+								<ItemsControl.ItemsPanel>
+									<ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
+								</ItemsControl.ItemsPanel>
+								<ItemsControl.Styles>
+									<Style Selector="ItemsControl > ContentPresenter">
+										<Setter Property="Canvas.Left" Value="0"/>
+										<Setter Property="Canvas.Top" Value="0"/>
+									</Style>
+								</ItemsControl.Styles>
+								<ItemsControl.ItemTemplate>
+									<DataTemplate x:DataType="vm:JambViewModel">
+										<Panel>
+											<!-- Немaтериализованный: контур -->
+											<Path Data="{Binding Outline}"
+												  Fill="Transparent"
+												  Stroke="{Binding StrokeColor}" StrokeThickness="{Binding StrokeThickness}"
+												  IsVisible="{Binding !IsMaterialized}"
+												  PointerPressed="ElementPath_PointerPressed"/>
+
+											<ItemsControl ItemsSource="{Binding Boards}" IsVisible="{Binding IsMaterialized}">
+												<ItemsControl.ItemsPanel>
+													<ItemsPanelTemplate><Grid/></ItemsPanelTemplate>
+												</ItemsControl.ItemsPanel>
+												<ItemsControl.ItemTemplate>
+													<DataTemplate x:DataType="vm:BoardViewModel">
+														<Path Data="{Binding Geometry}"
+															  Fill="Gray"
+															  Stroke="{Binding FillColor}"
+															  StrokeThickness="1"
+															  PointerPressed="ElementPath_PointerPressed"/>
+													</DataTemplate>
+												</ItemsControl.ItemTemplate>
+											</ItemsControl>
+										</Panel>
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+
+							<ItemsControl ItemsSource="{Binding JambSlots}">
+								<ItemsControl.ItemsPanel>
+									<ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
+								</ItemsControl.ItemsPanel>
+								<ItemsControl.Styles>
+									<Style Selector="ItemsControl > ContentPresenter" x:DataType="vm:JambSlotViewModel">
+										<Setter Property="Canvas.Left" Value="{Binding Left}"/>
+										<Setter Property="Canvas.Top" Value="{Binding Top}"/>
+									</Style>
+									<Style Selector="Button.jambArrow">
+										<Setter Property="Background" Value="Transparent"/>
+										<Setter Property="BorderThickness" Value="0"/>
+										<Setter Property="Padding" Value="0"/>
+										<Setter Property="Cursor" Value="Hand"/>
+									</Style>
+									<Style Selector="Button.jambArrow:pointerover /template/ ContentPresenter">
+										<Setter Property="Background" Value="Transparent"/>
+									</Style>
+									<Style Selector="Button.jambArrow:pointerover Path">
+										<Setter Property="Stroke" Value="#FF1B8F2E"/>
+										<Setter Property="StrokeThickness" Value="3.5"/>
+									</Style>
+								</ItemsControl.Styles>
+								<ItemsControl.ItemTemplate>
+									<DataTemplate x:DataType="vm:JambSlotViewModel">
+										<Button Classes="jambArrow" Width="24" Height="24"
+												Command="{Binding AddCommand}"
+												CommandParameter="{Binding Slot}"
+												ToolTip.Tip="Добавить добор"
+												RenderTransformOrigin="50%,50%">
+											<Button.RenderTransform>
+												<RotateTransform Angle="{Binding Angle}"/>
+											</Button.RenderTransform>
+											<Path Data="M -9,0 L 9,0 M 2,-7 L 9,0 L 2,7"
+												  Stroke="#FF2EA043" StrokeThickness="2.5"
+												  StrokeLineCap="Round" StrokeJoin="Round"
+												  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+										</Button>
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+
 							<!-- Узлы (Nodes) -->
 							<ItemsControl ItemsSource="{Binding Nodes}" IsVisible="{Binding IsNodeVisible, Source={x:Static local:AppSettings.Instance}}">
 								<ItemsControl.ItemsPanel>

@@ -1,51 +1,55 @@
 ﻿using BlueprintMaker.Domain.Models;
 using BlueprintMaker.Domain.Models.Elements;
+
 namespace BlueprintMaker.Application.Commands;
 
 public sealed class AddJambCommand : IUndoableCommand
 {
     private readonly PhysicalElement _wall;
-    private readonly int _startSegment;
+    private readonly int _segment;
     private readonly LightSpace? _targetSpace;
+    private readonly double _width;
 
-    private Jamb? _createdJamb;
-    private LightSpace? _remainingSpace;
+    private Jamb? _jamb;
+    private LightSpace? _remainder;
+    private MaterializeCommand? _materialize;
 
-    public AddJambCommand(PhysicalElement wall, int startSegment, LightSpace? targetSpace = null)
+    public AddJambCommand(PhysicalElement wall, int segment, LightSpace? targetSpace, double width)
     {
         _wall = wall;
-        _startSegment = startSegment;
+        _segment = segment;
         _targetSpace = targetSpace;
+        _width = width;
     }
 
     public void Execute()
     {
-        _createdJamb = _wall.AddJamb(_startSegment, _targetSpace);
+        var result = _wall.AddJamb(_segment, _targetSpace);
+        _jamb = result.Jamb;
+        _remainder = result.Remainder;
 
-        // Если доборник внутренний, он породит остаток. Запомним его для отката
-        if (_targetSpace != null && _targetSpace.Children.Count > 0)
-        {
-            _remainingSpace = _targetSpace.Children[1] as LightSpace;
-        }
+        _materialize = new MaterializeCommand(_jamb, _width);
+        _materialize.Execute();
     }
 
     public void Undo()
     {
-        if (_createdJamb == null) return;
+        if (_jamb == null) return;
 
-        // Если был внутренним, сносим и добор, и остаток
+        _materialize?.Undo();
+        _materialize = null;
+
         if (_targetSpace != null)
         {
-            if (_remainingSpace != null) _targetSpace.RemoveChildInternal(_remainingSpace);
-            _targetSpace.RemoveChildInternal(_createdJamb);
+            if (_remainder != null) _targetSpace.RemoveChildInternal(_remainder);
+            _targetSpace.RemoveChildInternal(_jamb);
         }
         else
         {
-            // Если внешний — просто удаляем снаружи
-            _wall.RemoveChildInternal(_createdJamb);
+            _wall.RemoveChildInternal(_jamb);
         }
 
-        _createdJamb = null;
-        _remainingSpace = null;
+        _jamb = null;
+        _remainder = null;
     }
 }

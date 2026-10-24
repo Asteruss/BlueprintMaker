@@ -14,9 +14,10 @@ namespace BlueprintMaker.Presentation.Avalonia.ViewModels;
 
 public partial class FrameViewModel : SelectableElement
 {
-    private readonly Frame _frame;
+    public readonly Frame Frame;
     private readonly DocumentHistory _history;
     private readonly ReactiveCommand<SelectableElement, Unit> _selectCmd;
+    private readonly ReactiveCommand<JambSlot, Unit> _addJambCmd;
 
     // Коллекции для холста
     public ObservableCollection<WireframeLine> Lines { get; } = new();
@@ -25,18 +26,33 @@ public partial class FrameViewModel : SelectableElement
     public ObservableCollection<LightSpaceViewModel> Spaces { get; } = new();
     public ObservableCollection<ImpostViewModel> Imposts { get; } = new();
     public ObservableCollection<SashViewModel> Sashes { get; } = new();
-    [Reactive] private FrameDragHandle _frameDragHandle;
+    public ObservableCollection<JambViewModel> Jambs { get; } = new();
+    public ObservableCollection<JambSlotViewModel> JambSlots { get; } = new();
 
-    public FrameAssembly Assembly => _frame.Assembly;
+    [Reactive] private FrameDragHandle _frameDragHandle;
     [Reactive] private bool _isMaterialized;
+
+    /// <summary>Режим показа стрелок создания добора.</summary>
+    [Reactive] private bool _showJambSlots = true;
+    private IWindowNode? _jambTarget;
+    public FrameAssembly Assembly => Frame.Assembly;
     public double Zoom => AppSettings.Instance.Zoom;
-    public FrameViewModel(Frame frame, DocumentHistory history, ReactiveCommand<SelectableElement, Unit> selectCmd) : base(selectCmd)
+
+    public FrameViewModel(
+        Frame frame,
+        DocumentHistory history,
+        ReactiveCommand<SelectableElement, Unit> selectCmd,
+        ReactiveCommand<JambSlot, Unit> addJambCmd) : base(selectCmd)
     {
-        _frame = frame;
+        Frame = frame;
         _history = history;
         _selectCmd = selectCmd;
+        _addJambCmd = addJambCmd;
         DisplayName = "Рама";
+
         AppSettings.Instance.WhenAnyValue(x => x.Zoom).Subscribe(_ => this.RaisePropertyChanged(nameof(Zoom)));
+        this.WhenAnyValue(x => x.ShowJambSlots).Subscribe(_ => RefreshJambSlots());
+
         Refresh();
     }
 
@@ -48,11 +64,27 @@ public partial class FrameViewModel : SelectableElement
         Spaces.Clear();
         Sashes.Clear();
         Imposts.Clear();
+        Jambs.Clear();
         Children.Clear();
         FrameDragHandle = null;
 
-        // Запускаем рекурсивное построение
-        BuildTree(_frame, this);
+        BuildTree(Frame, this);
+        RefreshJambSlots();
+    }
+
+    public void SetJambTarget(IWindowNode? node)
+    {
+        _jambTarget = node;
+        RefreshJambSlots();
+    }
+
+    private void RefreshJambSlots()
+    {
+        JambSlots.Clear();
+        if (_jambTarget == null) return;
+
+        foreach (var slot in JambSlotBuilder.Build(_jambTarget))
+            JambSlots.Add(new JambSlotViewModel(slot, _addJambCmd));
     }
 
     private void BuildTree(IWindowNode node, SelectableElement parentVM)
@@ -118,14 +150,13 @@ public partial class FrameViewModel : SelectableElement
                 }
             }
             FrameDragHandle = new FrameDragHandle(frame, _selectCmd);
-
         }
         else if (node is LightSpace ls)
         {
             var lsVM = new LightSpaceViewModel(ls, _selectCmd);
             parentVM.Children.Add(lsVM);
             Spaces.Add(lsVM);
-            parentVM = lsVM; // Дети будут вложены в это пространство в дереве
+            parentVM = lsVM;
         }
         else if (node is Impost impost)
         {
@@ -160,16 +191,20 @@ public partial class FrameViewModel : SelectableElement
 
             parentVM = impVM;
         }
-        // Рекурсивно идем по детям
-        foreach (var child in node.Children)
+        else if (node is Jamb jamb)
         {
-            BuildTree(child, parentVM);
+            var jvm = new JambViewModel(jamb, _selectCmd);
+            parentVM.Children.Add(jvm);
+            Jambs.Add(jvm);
+            return;
         }
+        foreach (var child in node.Children)
+            BuildTree(child, parentVM);
     }
 
     /// <summary>
-    /// Вычисляет контрольную точку дуги (середину дуги) по её концам и Bulge.
-    /// Возвращает null, если сегмент — прямая (Bulge == 0).
+    /// Контрольная точка дуги (середина дуги) по концам и Bulge.
+    /// null, если сегмент прямой.
     /// </summary>
     private static Point? ComputeArcControlPoint(Point from, Point to, double bulge)
     {
@@ -182,7 +217,6 @@ public partial class FrameViewModel : SelectableElement
         if (abLen < 1e-9) return null;
 
         var perp = new Point(ab.Y / abLen, -ab.X / abLen);
-
         double s = abLen * bulge / 2.0;
 
         return new Point(mid.X + perp.X * s, mid.Y + perp.Y * s);

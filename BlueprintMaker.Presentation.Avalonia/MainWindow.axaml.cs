@@ -6,9 +6,10 @@ using BlueprintMaker.Core.Geometry;
 using BlueprintMaker.Domain.Models.Elements;
 using BlueprintMaker.Domain.Models.Rules;
 using BlueprintMaker.Presentation.Avalonia.ViewModels;
+using BlueprintMaker.Presentation.Avalonia.Views;
 using System;
-using CorePoint = BlueprintMaker.Core.Geometry.Point;
 using AvaloniaPoint = global::Avalonia.Point;
+using CorePoint = BlueprintMaker.Core.Geometry.Point;
 
 
 namespace BlueprintMaker.Presentation.Avalonia;
@@ -28,7 +29,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         var mvm = new MainViewModel();
         DataContext = mvm;
-
+        RegisterDialogs();
         this.PointerMoved += MainWindow_PointerMoved;
         this.PointerReleased += MainWindow_PointerReleased;
 
@@ -246,6 +247,18 @@ public partial class MainWindow : Window
     private void ResetZoom_Click(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
     {
         AppSettings.Instance.Zoom = 1.0;
+    }
+
+    private void RegisterDialogs()
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        vm.AskJambWidth.RegisterHandler(async ctx =>
+        {
+            var dialog = new JambWidthDialog(ctx.Input);
+            var result = await dialog.ShowDialog<double?>(this);
+            ctx.SetOutput(result);
+        });
     }
 
 

@@ -28,8 +28,4 @@
     <ProjectReference Include="..\BlueprintMaker.Core.Geometry\BlueprintMaker.Core.Geometry.csproj" />
     <ProjectReference Include="..\BlueprintMaker.Domain.Models\BlueprintMaker.Domain.Models.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Views\" />
-  </ItemGroup>
 </Project>

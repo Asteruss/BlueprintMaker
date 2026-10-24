@@ -20,6 +20,13 @@ public sealed class LightSpace : WindowNodeBase
     {
     }
 
+    // Пространство с произвольным правилом (остаток после добора)
+    internal LightSpace(Guid id, IDerivationRule rule)
+    : base(id, localContour: null, rule: rule)
+    {
+    }
+
+
     public override double GetPhysicalWidth() => GeometryConstants.DisplayWidth;
 
     /// <summary>
@@ -64,6 +71,7 @@ public sealed class LightSpace : WindowNodeBase
         }
     }
 
+
     public Sash InsertSash()
     {
         if (Children.Count > 0)
@@ -75,4 +83,20 @@ public sealed class LightSpace : WindowNodeBase
         return sash;
     }
 
+    /// <summary>Внутренний добор по сегменту этого света. Остаток становится дочерним пространством.</summary>
+    public JambResult InsertJamb(int segmentIndex)
+    {
+        if (Children.Count > 0)
+            throw new InvalidOperationException("Пространство уже занято.");
+        if (segmentIndex < 0 || segmentIndex >= GetContour().Vertices.Count)
+            throw new ArgumentOutOfRangeException(nameof(segmentIndex));
+
+        var jamb = new Jamb(Guid.NewGuid(), segmentIndex, JambSide.Inner);
+        AddChildInternal(jamb);
+
+        var remainder = new LightSpace(Guid.NewGuid(), new JambRemainderRule(jamb));
+        AddChildInternal(remainder);
+
+        return new JambResult(jamb, remainder);
+    }
 }

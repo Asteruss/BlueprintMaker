@@ -1,14 +1,16 @@
-﻿using BlueprintMaker.Application;
+﻿using Avalonia.Media;
+using BlueprintMaker.Application;
 using BlueprintMaker.Core.Geometry;
 using BlueprintMaker.Domain.Models;
 using BlueprintMaker.Domain.Models.Elements;
 using BlueprintMaker.Domain.Models.Materialisation;
-using DynamicData;
+using BlueprintMaker.Domain.Models.Rules;
 using ReactiveUI;
 using ReactiveUI.SourceGenerators;
 using System;
 using System.Collections.ObjectModel;
 using System.Reactive;
+using AvaloniaPoint = Avalonia.Point;
 
 namespace BlueprintMaker.Presentation.Avalonia.ViewModels;
 
@@ -28,7 +30,7 @@ public partial class FrameViewModel : SelectableElement
     public ObservableCollection<SashViewModel> Sashes { get; } = new();
     public ObservableCollection<JambViewModel> Jambs { get; } = new();
     public ObservableCollection<JambSlotViewModel> JambSlots { get; } = new();
-
+    public ObservableCollection<DimensionViewModel> Dimensions { get; } = new();
     [Reactive] private FrameDragHandle _frameDragHandle;
     [Reactive] private bool _isMaterialized;
 
@@ -66,7 +68,8 @@ public partial class FrameViewModel : SelectableElement
         Imposts.Clear();
         Jambs.Clear();
         Children.Clear();
-        FrameDragHandle = null;
+        FrameDragHandle = null; 
+        Dimensions.Clear();
 
         BuildTree(Frame, this);
         RefreshJambSlots();
@@ -150,6 +153,7 @@ public partial class FrameViewModel : SelectableElement
                 }
             }
             FrameDragHandle = new FrameDragHandle(frame, _selectCmd);
+            CreateOverallDimensions(frame);
         }
         else if (node is LightSpace ls)
         {
@@ -200,6 +204,83 @@ public partial class FrameViewModel : SelectableElement
         }
         foreach (var child in node.Children)
             BuildTree(child, parentVM);
+    }
+
+    private void CreateOverallDimensions(Frame frame)
+    {
+        var bounds = frame.GetContour().BoundingBox;
+
+        // Учесть внешние доборы
+        foreach (var child in frame.Children)
+        {
+            if (child is Jamb jamb && jamb.Side == JambSide.Outer && jamb.Width > 0)
+            {
+                var jb = jamb.GetContour().BoundingBox;
+                bounds = bounds.Union(new Core.Geometry.Point(jb.MinX, jb.MinY));
+                bounds = bounds.Union(new Core.Geometry.Point(jb.MaxX, jb.MaxY));
+            }
+        }
+
+        const double offset = 30;
+        const double tickLen = 5;  // засечки 5px
+
+        double bottomY = bounds.MaxY + offset;
+        double bCenterX = (bounds.MinX + bounds.MaxX) / 2.0;
+
+        var bGeom = new StreamGeometry();
+        using (var ctx = bGeom.Open())
+        {
+            // Размерная линия
+            ctx.BeginFigure(new AvaloniaPoint(bounds.MinX, bottomY), false);
+            ctx.LineTo(new AvaloniaPoint(bounds.MaxX, bottomY));
+            ctx.EndFigure(false);
+            // Засечки — вертикальные, на концах
+            ctx.BeginFigure(new AvaloniaPoint(bounds.MinX, bottomY - tickLen), false);
+            ctx.LineTo(new AvaloniaPoint(bounds.MinX, bottomY + tickLen));
+            ctx.EndFigure(false);
+            ctx.BeginFigure(new AvaloniaPoint(bounds.MaxX, bottomY - tickLen), false);
+            ctx.LineTo(new AvaloniaPoint(bounds.MaxX, bottomY + tickLen));
+            ctx.EndFigure(false);
+        }
+
+        var bDim = new DimensionViewModel(
+            bGeom,
+            $"{bounds.Width:F0}",
+            bCenterX,         // центр
+            bottomY - 8,      // над линией
+            0,                // горизонтальный
+            _selectCmd);
+        Children.Add(bDim);
+        Dimensions.Add(bDim);
+
+        double leftX = bounds.MinX - offset;
+        double lCenterY = (bounds.MinY + bounds.MaxY) / 2.0;
+
+        var lGeom = new StreamGeometry();
+        using (var ctx = lGeom.Open())
+        {
+            // Размерная линия
+            ctx.BeginFigure(new AvaloniaPoint(leftX, bounds.MinY), false);
+            ctx.LineTo(new AvaloniaPoint(leftX, bounds.MaxY));
+            ctx.EndFigure(false);
+            // Засечки — горизонтальные, на концах
+            ctx.BeginFigure(new AvaloniaPoint(leftX - tickLen, bounds.MinY), false);
+            ctx.LineTo(new AvaloniaPoint(leftX + tickLen, bounds.MinY));
+            ctx.EndFigure(false);
+            ctx.BeginFigure(new AvaloniaPoint(leftX - tickLen, bounds.MaxY), false);
+            ctx.LineTo(new AvaloniaPoint(leftX + tickLen, bounds.MaxY));
+            ctx.EndFigure(false);
+        }
+
+        var lDim = new DimensionViewModel(
+            lGeom,
+            $"{bounds.Height:F0}",
+            leftX - 8,        // слева от линии
+            lCenterY,         // центр
+            -90,              // против часовой
+            _selectCmd);
+        Children.Add(lDim);
+        Dimensions.Add(lDim);
     }
 
     /// <summary>

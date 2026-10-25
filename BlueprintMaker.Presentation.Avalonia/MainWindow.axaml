@@ -340,6 +340,44 @@
 								</ItemsControl.ItemTemplate>
 							</ItemsControl>
 
+							<!-- Размерные линии -->
+							<ItemsControl ItemsSource="{Binding Dimensions}"
+										  IsVisible="{ReflectionBinding IsDimensionsVisible, Source={x:Static local:AppSettings.Instance}}">
+								<ItemsControl.ItemsPanel>
+									<ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
+								</ItemsControl.ItemsPanel>
+								<ItemsControl.Styles>
+									<Style Selector="ItemsControl > ContentPresenter">
+										<Setter Property="Canvas.Left" Value="0"/>
+										<Setter Property="Canvas.Top" Value="0"/>
+									</Style>
+								</ItemsControl.Styles>
+								<ItemsControl.ItemTemplate>
+									<DataTemplate x:DataType="vm:DimensionViewModel">
+										<Panel>
+											<Path Data="{Binding Geometry}"
+												  Stroke="{Binding DisplayColor}"
+												  StrokeThickness="{Binding StrokeThickness}"
+												  Fill="Transparent"/>
+											<TextBlock Text="{Binding Text}"
+													   Foreground="Black"
+													   FontWeight="Bold"
+													   FontSize="10"
+													   RenderTransformOrigin="0.5,0.5"
+													   Margin="-10,-7,0,0">
+												<TextBlock.RenderTransform>
+													<TransformGroup>
+														<RotateTransform Angle="{Binding Angle}"/>
+														<TranslateTransform X="{Binding TextX}" Y="{Binding TextY}"/>
+													</TransformGroup>
+												</TextBlock.RenderTransform>
+											</TextBlock>
+										</Panel>
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+
+
 							<Canvas IsVisible="{Binding IsSelected}">
 								<Ellipse Width="16" Height="16"
 										 Canvas.Left="{Binding FrameDragHandle.X, FallbackValue=0}"

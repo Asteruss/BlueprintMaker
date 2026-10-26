@@ -36,6 +36,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BlueprintMaker.Application.Commands\BlueprintMaker.Application.Commands.csproj" />
+    <ProjectReference Include="..\BlueprintMaker.Application.Persistence\BlueprintMaker.Application.Persistence.csproj" />
     <ProjectReference Include="..\BlueprintMaker.Application\BlueprintMaker.Application.csproj" />
     <ProjectReference Include="..\BlueprintMaker.Core.Geometry\BlueprintMaker.Core.Geometry.csproj" />
     <ProjectReference Include="..\BlueprintMaker.Domain.Models\BlueprintMaker.Domain.Models.csproj" />

@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Platform.Storage;
 using BlueprintMaker.Application.Commands;
 using BlueprintMaker.Core.Geometry;
 using BlueprintMaker.Domain.Models.Elements;
@@ -8,6 +9,7 @@ using BlueprintMaker.Domain.Models.Rules;
 using BlueprintMaker.Presentation.Avalonia.ViewModels;
 using BlueprintMaker.Presentation.Avalonia.Views;
 using System;
+using BlueprintMaker.Presentation.Avalonia.Helpers;
 using AvaloniaPoint = global::Avalonia.Point;
 using CorePoint = BlueprintMaker.Core.Geometry.Point;
 
@@ -46,6 +48,33 @@ public partial class MainWindow : Window
         };
 
         DrawingCanvas.PointerPressed += Canvas_PointerPressed;
+
+        Closing += OnWindowClosing;
+        Opened += async (_, _) =>
+        {
+            if (DataContext is MainViewModel vm) await vm.TryRecoverAutosaveAsync();
+        };
+    }
+
+    private bool _closeConfirmed;
+
+    private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)
+    {
+        if (_closeConfirmed || DataContext is not MainViewModel vm) return;
+
+        if (!vm.HasUnsavedChanges)
+        {
+            vm.DeleteAutosave();
+            return;
+        }
+
+        e.Cancel = true;   // решение примем после ответа пользователя
+        if (await vm.ConfirmCanDiscardAsync())
+        {
+            vm.DeleteAutosave();
+            _closeConfirmed = true;
+            Close();
+        }
     }
 
     private void Canvas_PointerPressed(object? sender, PointerPressedEventArgs e)
@@ -265,6 +294,44 @@ public partial class MainWindow : Window
             var dialog = new NewWindowDialog();
             var result = await dialog.ShowDialog<Contour?>(this);
             ctx.SetOutput(result);
+        });
+
+        var fileType = new FilePickerFileType("Окно BlueprintMaker") { Patterns = new[] { "*.bpmaker" } };
+
+        vm.AskUnsaved.RegisterHandler(async ctx =>
+        {
+            var d = new ChoiceDialog(ctx.Input, "Сохранить", "Не сохранять", "Отмена");
+            ctx.SetOutput(await d.ShowDialog<ChoiceResult>(this));
+        });
+
+        vm.AskRecover.RegisterHandler(async ctx =>
+        {
+            var d = new ChoiceDialog(ctx.Input, "Восстановить", "Удалить", "Позже");
+            ctx.SetOutput(await d.ShowDialog<ChoiceResult>(this));
+        });
+
+        vm.AskOpenPath.RegisterHandler(async ctx =>
+        {
+            var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = "Открыть окно",
+                AllowMultiple = false,
+                FileTypeFilter = new[] { fileType }
+            });
+            ctx.SetOutput(files.Count > 0 ? files[0].TryGetLocalPath() : null);
+        });
+
+        vm.AskSavePath.RegisterHandler(async ctx =>
+        {
+            var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            {
+                Title = "Сохранить окно",
+                SuggestedFileName = ctx.Input,
+                DefaultExtension = "bpmaker",
+                FileTypeChoices = new[] { fileType },
+                ShowOverwritePrompt = true
+            });
+            ctx.SetOutput(file?.TryGetLocalPath());
         });
     }
 

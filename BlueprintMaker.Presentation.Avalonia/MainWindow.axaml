@@ -13,6 +13,13 @@
 		WindowStartupLocation="CenterOwner"
 		WindowState="Maximized">
 
+	<Window.KeyBindings>
+        <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}"/>
+        <KeyBinding Gesture="Ctrl+Shift+S" Command="{Binding SaveAsCommand}"/>
+        <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenCommand}"/>
+        <KeyBinding Gesture="Ctrl+N" Command="{Binding CreateWindowCommand}"/>
+    </Window.KeyBindings>
+
 	<Design.DataContext>
 		<vm:MainViewModel/>
 	</Design.DataContext>
@@ -22,8 +29,12 @@
 		<!-- Меню -->
 		<Menu Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3">
 			<MenuItem Header="Файл">
-				<MenuItem Header="Создать окно" Command="{Binding CreateWindowCommand}"/>
+				<MenuItem Header="Открыть" Command="{Binding OpenCommand}"/>
+				<MenuItem Header="Сохранить" Command="{Binding SaveCommand}"/>
+				<MenuItem Header="Сохранить как…" Command="{Binding SaveAsCommand}"/>
 			</MenuItem>
+				<MenuItem Header="Создать окно" Command="{Binding CreateWindowCommand}"/>
+
 		</Menu>
 
 		<!-- Панель инструментов -->

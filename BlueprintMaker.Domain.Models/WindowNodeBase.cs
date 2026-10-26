@@ -91,4 +91,11 @@ public abstract class WindowNodeBase : IWindowNode
         _rule = newRule;
         _localContour = null; // Возвращаемся к параметрической модели
     }
+
+    /// <summary>Восстановление замороженной формы при загрузке из файла.</summary>
+    public void RestoreFrozenContour(Contour contour)
+    {
+        _rule = null;
+        _localContour = contour;
+    }
 }

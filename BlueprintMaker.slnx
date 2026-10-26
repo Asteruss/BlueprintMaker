@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="BlueprintMaker.Application.Commands/BlueprintMaker.Application.Commands.csproj" Id="4d3aa770-3004-4eb2-aed9-b0dff920ef68" />
+    <Project Path="BlueprintMaker.Application.Persistence/BlueprintMaker.Application.Persistence.csproj" Id="2ed4ac0b-25c6-472f-baca-2ce5f0c86205" />
     <Project Path="BlueprintMaker.Application/BlueprintMaker.Application.csproj" Id="6305bcfe-7dbb-43f0-811a-1ed42fe8e13f" />
     <Project Path="BlueprintMaker.Core.Geometry/BlueprintMaker.Core.Geometry.csproj" />
     <Project Path="BlueprintMaker.Domain.Models/BlueprintMaker.Domain.Models.csproj" Id="65893956-3577-4e86-af44-ded2f74edbbc" />

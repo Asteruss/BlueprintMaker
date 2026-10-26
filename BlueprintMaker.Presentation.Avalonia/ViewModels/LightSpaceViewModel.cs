@@ -3,6 +3,7 @@ using BlueprintMaker.Domain.Models;
 using BlueprintMaker.Domain.Models.Elements;
 using ReactiveUI;
 using ReactiveUI.SourceGenerators;
+using System.Linq;
 using System.Reactive;
 
 namespace BlueprintMaker.Presentation.Avalonia.ViewModels;
@@ -24,5 +25,13 @@ public partial class LightSpaceViewModel : SelectableElement
     protected override void OnSelectedChanged()
     {
         this.RaisePropertyChanged(nameof(FillColor));
+    }
+
+    public override void RefreshTreeChildren()
+    {
+        TreeChildren = Children
+            .Where(c => c is LightSpaceViewModel or ImpostViewModel or
+                            SashViewModel or BoardViewModel or JambViewModel)
+            .ToList();
     }
 }

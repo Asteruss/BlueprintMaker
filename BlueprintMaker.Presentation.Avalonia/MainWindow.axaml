@@ -14,11 +14,11 @@
 		WindowState="Maximized">
 
 	<Window.KeyBindings>
-        <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}"/>
-        <KeyBinding Gesture="Ctrl+Shift+S" Command="{Binding SaveAsCommand}"/>
-        <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenCommand}"/>
-        <KeyBinding Gesture="Ctrl+N" Command="{Binding CreateWindowCommand}"/>
-    </Window.KeyBindings>
+		<KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}"/>
+		<KeyBinding Gesture="Ctrl+Shift+S" Command="{Binding SaveAsCommand}"/>
+		<KeyBinding Gesture="Ctrl+O" Command="{Binding OpenCommand}"/>
+		<KeyBinding Gesture="Ctrl+N" Command="{Binding CreateWindowCommand}"/>
+	</Window.KeyBindings>
 
 	<Design.DataContext>
 		<vm:MainViewModel/>
@@ -33,7 +33,7 @@
 				<MenuItem Header="Сохранить" Command="{Binding SaveCommand}"/>
 				<MenuItem Header="Сохранить как…" Command="{Binding SaveAsCommand}"/>
 			</MenuItem>
-				<MenuItem Header="Создать окно" Command="{Binding CreateWindowCommand}"/>
+			<MenuItem Header="Создать окно" Command="{Binding CreateWindowCommand}"/>
 
 		</Menu>
 
@@ -53,17 +53,64 @@
 		</WrapPanel>
 
 		<!-- Дерево элементов -->
-		<TreeView Grid.Row="2" Grid.Column="0" ItemsSource="{Binding Frames}" Background="WhiteSmoke" ZIndex="12">
-			<TreeView.ItemTemplate>
-				<TreeDataTemplate DataType="vm:FrameViewModel" ItemsSource="{Binding Children}">
-					<Button Command="{Binding SelectCommand}" CommandParameter="{Binding}"
-							Padding="2" Background="Transparent" BorderThickness="0">
-						<TextBlock Text="{Binding DisplayName}" Foreground="{Binding DisplayColor}" />
-					</Button>
-				</TreeDataTemplate>
-			</TreeView.ItemTemplate>
-		</TreeView>
+		<TreeView Grid.Row="2" Grid.Column="0" ItemsSource="{Binding Frames}" Background="WhiteSmoke">
+    <TreeView.Styles>
+        <Style Selector="TreeViewItem">
+            <Setter Property="IsExpanded" Value="True"/>
+            <Setter Property="Padding" Value="8,1"/>
+        </Style>
+    </TreeView.Styles>
 
+    <TreeView.DataTemplates>
+        <!-- Рама -->
+        <TreeDataTemplate DataType="vm:FrameViewModel" ItemsSource="{Binding TreeChildren}">
+            <Button Command="{Binding SelectCommand}" CommandParameter="{Binding}"
+                    Padding="2" Background="Transparent" BorderThickness="0">
+                <TextBlock Text="{Binding DisplayName}" Foreground="Black"/>
+            </Button>
+        </TreeDataTemplate>
+
+        <!-- Доска (сторона + ширина) -->
+        <TreeDataTemplate DataType="vm:BoardViewModel">
+            <Button Command="{Binding SelectCommand}" CommandParameter="{Binding}"
+                    Padding="2" Background="Transparent" BorderThickness="0">
+                <TextBlock Text="{Binding DisplayName}" Foreground="DarkSlateGray"/>
+            </Button>
+        </TreeDataTemplate>
+
+        <!-- Световой проём -->
+        <TreeDataTemplate DataType="vm:LightSpaceViewModel" ItemsSource="{Binding TreeChildren}">
+            <Button Command="{Binding SelectCommand}" CommandParameter="{Binding}"
+                    Padding="2" Background="Transparent" BorderThickness="0">
+                <TextBlock Text="Световой проём" Foreground="Gray"/>
+            </Button>
+        </TreeDataTemplate>
+
+        <!-- Импост -->
+        <TreeDataTemplate DataType="vm:ImpostViewModel" ItemsSource="{Binding TreeChildren}">
+            <Button Command="{Binding SelectCommand}" CommandParameter="{Binding}"
+                    Padding="2" Background="Transparent" BorderThickness="0">
+                <TextBlock Text="{Binding DisplayName}" Foreground="Black"/>
+            </Button>
+        </TreeDataTemplate>
+
+        <!-- Створка -->
+        <TreeDataTemplate DataType="vm:SashViewModel" ItemsSource="{Binding TreeChildren}">
+            <Button Command="{Binding SelectCommand}" CommandParameter="{Binding}"
+                    Padding="2" Background="Transparent" BorderThickness="0">
+                <TextBlock Text="Створка" Foreground="Black"/>
+            </Button>
+        </TreeDataTemplate>
+
+        <!-- Добор -->
+        <TreeDataTemplate DataType="vm:JambViewModel">
+            <Button Command="{Binding SelectCommand}" CommandParameter="{Binding}"
+                    Padding="2" Background="Transparent" BorderThickness="0">
+                <TextBlock Text="{Binding DisplayName}" Foreground="DarkGoldenrod"/>
+            </Button>
+        </TreeDataTemplate>
+    </TreeView.DataTemplates>
+</TreeView>
 		<!-- Холст -->
 		<Grid Grid.Row="2" Grid.Column="1" ClipToBounds="True">
 			<ItemsControl x:Name="DrawingCanvas" Background="#F9F9F9" ItemsSource="{Binding Frames}">

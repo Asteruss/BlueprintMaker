@@ -174,6 +174,21 @@ public partial class MainViewModel : ReactiveObject
 
     private void SelectElement(SelectableElement element)
     {
+
+        if (element is LightSpaceViewModel ls && ls.Children.Count > 0)
+        {
+            StatusMessage = "Световой проём занят — выберите вложенный элемент";
+            return;
+        }     
+
+        if (element is ImpostViewModel impVM)
+        {
+            if (impVM.Segments.Count > 0)
+                element = impVM.Segments[0];
+            else if (impVM.Boards.Count > 0)
+                element = impVM.Boards[0];
+        }
+
         if (SelectedFrame != null) DeselectAll(SelectedFrame);
         element.IsSelected = true;
         SelectedElement = element;

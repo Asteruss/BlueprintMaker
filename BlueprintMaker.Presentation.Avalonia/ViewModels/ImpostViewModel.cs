@@ -1,8 +1,10 @@
-﻿using System.Collections.ObjectModel;
-using System.Reactive;
-using BlueprintMaker.Domain.Models.Elements;
+﻿using BlueprintMaker.Domain.Models.Elements;
 using ReactiveUI;
 using ReactiveUI.SourceGenerators;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Reactive;
 
 namespace BlueprintMaker.Presentation.Avalonia.ViewModels;
 
@@ -45,4 +47,11 @@ public partial class ImpostViewModel : SelectableElement
     }
 
     protected override void OnSelectedChanged() { }
+
+    public override void RefreshTreeChildren()
+    {
+        TreeChildren = Children
+            .Where(c => c is BoardViewModel or JambViewModel)
+            .ToList();
+    }
 }

@@ -5,11 +5,15 @@ using BlueprintMaker.Domain.Models;
 using BlueprintMaker.Domain.Models.Elements;
 using BlueprintMaker.Domain.Models.Materialisation;
 using BlueprintMaker.Domain.Models.Rules;
+using BlueprintMaker.Presentation.Avalonia.Helpers;
 using ReactiveUI;
 using ReactiveUI.SourceGenerators;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Reactive;
+using System.Security.Cryptography;
 using AvaloniaPoint = Avalonia.Point;
 
 namespace BlueprintMaker.Presentation.Avalonia.ViewModels;
@@ -73,6 +77,7 @@ public partial class FrameViewModel : SelectableElement
 
         BuildTree(Frame, this);
         RefreshJambSlots();
+        RefreshTreeChildrenRecursive();
     }
 
     public void SetJambTarget(IWindowNode? node)
@@ -99,13 +104,19 @@ public partial class FrameViewModel : SelectableElement
             Sashes.Add(sashVM);
 
             sashVM.RefreshBoards();
+            sashVM.RefreshTreeChildren();
 
             parentVM = sashVM;
         }
         else if (node is Frame frame)
         {
-            // Линии рамы
             var contour = frame.GetContour();
+            var bounds = contour.BoundingBox;
+            var center = new Core.Geometry.Point(
+                (bounds.MinX + bounds.MaxX) / 2.0,
+                (bounds.MinY + bounds.MaxY) / 2.0);
+
+            // Линии рамы
             for (int i = 0; i < contour.Vertices.Count; i++)
             {
                 var from = contour.Vertices[i];
@@ -130,6 +141,14 @@ public partial class FrameViewModel : SelectableElement
                 foreach (var board in frame.Assembly.Boards)
                 {
                     var bvm = new BoardViewModel(board, _selectCmd);
+
+                    // Сторона света
+                    var mid = new Core.Geometry.Point(
+                        (board.StartOuter.X + board.EndOuter.X) / 2.0,
+                        (board.StartOuter.Y + board.EndOuter.Y) / 2.0);
+                    var label = SideLabelResolver.GetLabel(mid, center);
+                    bvm.DisplayName = $"Рама {label} {bvm.BoardLength:F0}мм";
+
                     parentVM.Children.Add(bvm);
                     Boards.Add(bvm);
 
@@ -152,6 +171,7 @@ public partial class FrameViewModel : SelectableElement
                     Nodes.Add(nvm);
                 }
             }
+
             FrameDragHandle = new FrameDragHandle(frame, _selectCmd);
             CreateOverallDimensions(frame);
         }
@@ -166,10 +186,37 @@ public partial class FrameViewModel : SelectableElement
         {
             impost.ReprojectToParent();
             var impVM = new ImpostViewModel(impost, _selectCmd);
+
+            var impContour = impost.GetContour();
+
+            var orientation = (impost.Rule as ImpostPlacementRule)?.Orientation ?? AxisOrientation.Vertical;
+            var impLabel = orientation == AxisOrientation.Vertical ? "В" : "Г";
+
+            // Длина
+            double impLength;
+            if (impost.Width > 0 && impost.Assembly.Board != null)
+            {
+                impLength = Math.Max(ContourMath.LongestEdgeLength(impost.Assembly.Board.PhysicalContour), impost.Assembly.Board.Length);
+            }
+            else
+            {
+                var impFrom = impContour.Vertices[0].Position;
+                var impTo = impContour.Vertices[impContour.Vertices.Count - 1].Position;
+                var impBulge = impContour.Vertices[0].Bulge;
+                if (Math.Abs(impBulge) < GeometryConstants.Tolerance)
+                    impLength = impFrom.DistanceTo(impTo);
+                else
+                {
+                    var arc = BulgeMath.GetArcParameters(impFrom, impTo, impBulge);
+                    impLength = arc.Radius * Math.Abs(arc.SweepAngle);
+                }
+            }
+
+            impVM.DisplayName = $"Импост {impLabel} {impLength:F0}мм";
+
             parentVM.Children.Add(impVM);
             Imposts.Add(impVM);
 
-            var impContour = impost.GetContour();
             for (int i = 0; i < impContour.Vertices.Count; i++)
             {
                 var p = impContour.Vertices[i].Position;
@@ -198,10 +245,15 @@ public partial class FrameViewModel : SelectableElement
         else if (node is Jamb jamb)
         {
             var jvm = new JambViewModel(jamb, _selectCmd);
+            var jambBounds = jamb.GetContour().BoundingBox;
+            double jambLength = Math.Max(jambBounds.Width, jambBounds.Height);
+            var jambSide = jamb.Side == JambSide.Inner ? "Внутр." : "Внеш.";
+            jvm.DisplayName = $"Добор {jambSide} {jambLength:F0}мм";
             parentVM.Children.Add(jvm);
-            Jambs.Add(jvm);
+            Jambs.Add(jvm); 
             return;
         }
+
         foreach (var child in node.Children)
             BuildTree(child, parentVM);
     }
@@ -301,5 +353,13 @@ public partial class FrameViewModel : SelectableElement
         double s = abLen * bulge / 2.0;
 
         return new Point(mid.X + perp.X * s, mid.Y + perp.Y * s);
+    }
+
+    public override void RefreshTreeChildren()
+    {
+        TreeChildren = Children
+            .Where(c => c is LightSpaceViewModel or SashViewModel or
+                            BoardViewModel or JambViewModel)
+            .ToList();
     }
 }

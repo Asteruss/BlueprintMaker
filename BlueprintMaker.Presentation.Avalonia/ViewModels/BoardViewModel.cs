@@ -2,6 +2,7 @@
 using BlueprintMaker.Core.Geometry;
 using ReactiveUI;
 using ReactiveUI.SourceGenerators;
+using System;
 using System.Reactive;
 using DomainBoard = BlueprintMaker.Domain.Models.Materialisation.Board;
 
@@ -35,6 +36,6 @@ public partial class BoardViewModel : SelectableElement
     public double BoardLength =>
     SourceBoard?.PhysicalContour == null
         ? 0
-        : ContourMath.LongestEdgeLength(SourceBoard.PhysicalContour);
+        : Math.Max(ContourMath.LongestEdgeLength(SourceBoard.PhysicalContour), SourceBoard.Length);
 }
 

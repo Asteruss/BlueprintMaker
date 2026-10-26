@@ -13,7 +13,7 @@ public sealed class ImpostPlacementRule : IDerivationRule
     public ImpostPlacementRule(AxisOrientation orientation, double relativePosition = 0.5)
     {
         Orientation = orientation;
-        RelativePosition = Math.Clamp(relativePosition, 0, 1);
+        RelativePosition = MathCompat.Clamp(relativePosition, 0, 1);
     }
 
     public Contour Resolve(IWindowNode parent)

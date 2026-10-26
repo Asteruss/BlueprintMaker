@@ -43,7 +43,7 @@ public partial class MainWindow : Window
         DrawingCanvas.PointerWheelChanged += (s, e) =>
         {
             double delta = e.Delta.Y > 0 ? 0.1 : -0.1;
-            AppSettings.Instance.Zoom = Math.Clamp(AppSettings.Instance.Zoom + delta, 0.2, 5.0);
+            AppSettings.Instance.Zoom = MathCompat.Clamp(AppSettings.Instance.Zoom + delta, 0.2, 5.0);
             e.Handled = true;
         };
 

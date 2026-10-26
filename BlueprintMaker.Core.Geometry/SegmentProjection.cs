@@ -29,7 +29,7 @@ public static class SegmentProjection
             ? 0
             : ((test.X - from.X) * dx + (test.Y - from.Y) * dy) / lengthSq;
 
-        t = Math.Clamp(t, 0, 1);
+        t = MathCompat.Clamp(t, 0, 1);
 
         var closest = new Point(from.X + dx * t, from.Y + dy * t);
         return new SegmentProjectionResult(closest, t, closest.DistanceTo(test));

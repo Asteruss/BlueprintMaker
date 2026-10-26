@@ -111,7 +111,7 @@ public static class FrameShapeFactory
     private static int AutoSegments(double rx, double ry)
     {
         double ratio = Math.Max(rx, ry) / Math.Min(rx, ry);
-        return Math.Clamp((int)Math.Ceiling(3.0 * Math.Sqrt(ratio)), 4, 16);
+        return MathCompat.Clamp((int)Math.Ceiling(3.0 * Math.Sqrt(ratio)), 4, 16);
     }
 
     /// <summary>

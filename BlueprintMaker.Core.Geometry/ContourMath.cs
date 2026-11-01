@@ -79,7 +79,7 @@ public static class ContourMath
     {
         int n = vertices.Count;
         bool hasArc = vertices.Any(v => v.IsArcStart);
-        if (n < 2 || (n < 3 && !hasArc))
+        if (!ContourRules.IsValidClosed(vertices))
             throw new ArgumentException("Inset требует замкнутый контур.");
 
         double area = CalculateSignedArea(vertices);

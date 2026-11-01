@@ -51,6 +51,8 @@ public abstract class PhysicalElement : WindowNodeBase, IMaterializable
         if (startVertexIndex < 0 || startVertexIndex >= maxSegmentIndex)
             throw new ArgumentOutOfRangeException(nameof(startVertexIndex));
 
+        bulge = ArcLimits.Clamp(bulge);
+
         currentVertices[startVertexIndex] = new ContourVertex(currentVertices[startVertexIndex].Position, bulge);
         UpdateLocalContour(RebuildContour(currentVertices));
     }
@@ -97,6 +99,7 @@ public abstract class PhysicalElement : WindowNodeBase, IMaterializable
             throw new ArgumentOutOfRangeException(nameof(vertexIndex));
 
         currentVertices.RemoveAt(vertexIndex);
+        if (GetContour().IsClosed && !ContourRules.IsValidClosed(currentVertices)) return;
         UpdateLocalContour(RebuildContour(currentVertices));
     }
 
@@ -133,18 +136,8 @@ public abstract class PhysicalElement : WindowNodeBase, IMaterializable
         return new JambResult(jamb, null);
     }
 
-    protected List<ContourVertex> EnsureClockwise(List<ContourVertex> vertices)
-    {
-        // Проверяем только если точек 3 и больше (иначе площадь не посчитать)
-        if (vertices.Count >= 3)
-        {
-            if (ContourMath.CalculateSignedArea(vertices) < 0)
-            {
-                vertices.Reverse();
-            }
-        }
-        return vertices;
-    }
+    protected List<ContourVertex> EnsureClockwise(List<ContourVertex> vertices) =>
+    ContourMath.EnsureClockwise(vertices);
     // Вспомогательный метод, чтобы понимать, замкнут контур (Рама) или открыт (Импост)
     protected abstract Contour RebuildContour(List<ContourVertex> vertices);
 }

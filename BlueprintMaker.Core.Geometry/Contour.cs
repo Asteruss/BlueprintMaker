@@ -25,7 +25,7 @@ public sealed class Contour
 
     public static Contour CreateClosed(IReadOnlyList<ContourVertex> vertices)
     {
-        if (vertices.Count < 3)
+        if (!ContourRules.IsValidClosed(vertices))
             throw new ArgumentException("Замкнутый контур должен содержать минимум 3 вершины.");
         return new Contour(vertices, isClosed: true);
     }

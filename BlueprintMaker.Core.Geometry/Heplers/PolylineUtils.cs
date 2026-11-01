@@ -37,11 +37,7 @@ internal static class PolylineUtils
     public static Contour? MakeContour(List<ContourVertex> pts)
     {
         var c = CleanClosed(pts);
-        if (c.Count < 2) return null;
-
-        bool anyArc = c.Any(v => v.IsArcStart);
-        if (c.Count < 3 && !anyArc) return null;
-
+        if (!ContourRules.IsValidClosed(c)) return null;
         ContourMath.EnsureClockwise(c);
         return Contour.CreateClosed(c);
     }

@@ -14,10 +14,7 @@ public sealed class FrameAssembly
     public void Rebuild(Contour outerContour, Contour innerContour, double width)
     {
         int n = outerContour.Vertices.Count;
-        bool hasArc = outerContour.Vertices.Any(v => v.IsArcStart);
-
-        // Овал из двух дуг имеет всего 2 вершины
-        if (n < 2 || (n < 3 && !hasArc) || innerContour.Vertices.Count != n) return;
+        if (!ContourRules.IsValidClosed(outerContour.Vertices) || innerContour.Vertices.Count != n) return;
 
         Width = width;
 

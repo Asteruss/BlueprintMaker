@@ -6,7 +6,6 @@ using ReactiveUI;
 using ReactiveUI.SourceGenerators;
 using System;
 using System.Collections.Generic;
-using System.Reactive.Linq;
 
 namespace BlueprintMaker.Presentation.Avalonia.ViewModels;
 
@@ -71,9 +70,11 @@ public partial class NewWindowDialogViewModel : ReactiveObject
     [Reactive] private decimal? _trapHeight = 400;
     [Reactive] private SideOption _trapSide;
 
-    // Овал
-    [Reactive] private decimal? _radiusX = 250;
-    [Reactive] private decimal? _radiusY = 200;
+    // Овал / круг: два радиуса (горизонтальный и вертикальный)
+    public IReadOnlyList<int> BoardCounts => FrameShapeFactory.OvalBoardCounts;
+    [Reactive] private int _ovalBoards = 4;
+    [Reactive] private decimal? _radiusHorizontal = 250;
+    [Reactive] private decimal? _radiusVertical = 200;
 
     // Многоугольник
     [Reactive] private decimal? _polySides = 6;
@@ -83,6 +84,12 @@ public partial class NewWindowDialogViewModel : ReactiveObject
     public bool IsTrapezoid => SelectedShape.Kind == WindowShapeKind.Trapezoid;
     public bool IsEllipse => SelectedShape.Kind == WindowShapeKind.Ellipse;
     public bool IsPolygon => SelectedShape.Kind == WindowShapeKind.Polygon;
+
+    private bool IsCircle => Math.Abs(D(RadiusHorizontal) - D(RadiusVertical)) < 1e-6;
+
+    public string OvalInfo =>
+        $"Размер: {2 * D(RadiusHorizontal):0.##} × {2 * D(RadiusVertical):0.##} мм" +
+        (IsCircle ? " (круг)" : "");
 
     public NewWindowDialogViewModel()
     {
@@ -97,6 +104,9 @@ public partial class NewWindowDialogViewModel : ReactiveObject
             this.RaisePropertyChanged(nameof(IsEllipse));
             this.RaisePropertyChanged(nameof(IsPolygon));
         });
+
+        this.WhenAnyValue(x => x.RadiusHorizontal, x => x.RadiusVertical, x => x.OvalBoards)
+            .Subscribe(_ => this.RaisePropertyChanged(nameof(OvalInfo)));
     }
 
     /// <summary>Строит контур по введённым параметрам. false — параметры некорректны, причина в Error.</summary>
@@ -124,7 +134,12 @@ public partial class NewWindowDialogViewModel : ReactiveObject
                     break;
 
                 case WindowShapeKind.Ellipse:
-                    contour = FrameShapeFactory.Ellipse(D(RadiusX), D(RadiusY));
+                    if (!IsCircle && OvalBoards < 4)
+                    {
+                        Error = "При 2 и 3 досках возможен только круг. Выберите 4 или 6 досок.";
+                        return false;
+                    }
+                    contour = FrameShapeFactory.Oval(D(RadiusHorizontal), D(RadiusVertical), OvalBoards);
                     break;
 
                 case WindowShapeKind.Polygon:

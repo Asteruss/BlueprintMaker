@@ -14,13 +14,15 @@ public sealed class MoveNodeCommand : IUndoableCommand
     private readonly int _vertexIndex;
     private readonly Point _oldPosition;
     private readonly Point _newPosition;
+    private IDerivationRule? _oldRule;
 
-    public MoveNodeCommand(PhysicalElement element, int vertexIndex, Point oldPosition, Point newPosition)
+    public MoveNodeCommand(PhysicalElement element, int vertexIndex, Point oldPosition, Point newPosition, IDerivationRule? oldRule = null)
     {
         _element = element;
         _vertexIndex = vertexIndex;
         _oldPosition = oldPosition;
         _newPosition = newPosition;
+        _oldRule = oldRule;
     }
 
     public void Execute()
@@ -31,5 +33,7 @@ public sealed class MoveNodeCommand : IUndoableCommand
     public void Undo()
     {
         _element.MoveNode(_vertexIndex, _oldPosition);
+        if (_oldRule != null)
+            _element.RestoreRule(_oldRule);
     }
 }

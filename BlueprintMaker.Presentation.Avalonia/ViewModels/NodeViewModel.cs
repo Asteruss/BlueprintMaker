@@ -24,6 +24,7 @@ public partial class NodeViewModel : SelectableElement
     private Point _dragStartPos;
     private double _dragStartBulge;
     private bool _isDragging;
+    private IDerivationRule? _dragStartRule;
 
     public NodeViewModel(PhysicalElement element, int index, Point pos, ReactiveCommand<SelectableElement, Unit> selectCmd, NodeType type) : base(selectCmd)
     {
@@ -46,17 +47,20 @@ public partial class NodeViewModel : SelectableElement
     /// Вызывается в начале drag (PointerPressed). Запоминает начальную позицию узла
     /// и (для ArcControl) начальный Bulge сегмента — для создания Undo-команды в EndDrag.
     /// </summary>
+
     public void BeginDrag()
     {
         _isDragging = true;
         _dragStartPos = new Point(X, Y);
 
+        // Сохранить Rule ДО DragTo — DragTo вызывает MoveNode → FreezeGeometry → Rule = null
+        _dragStartRule = Element.Rule;
+
         if (NodeType == NodeType.ArcControl)
         {
             var contour = Element.GetContour();
             _dragStartBulge = (SegmentIndex >= 0 && SegmentIndex < contour.Vertices.Count)
-                ? contour.Vertices[SegmentIndex].Bulge
-                : 0;
+                ? contour.Vertices[SegmentIndex].Bulge : 0;
         }
     }
 
@@ -122,12 +126,19 @@ public partial class NodeViewModel : SelectableElement
 
         var finalPos = new Point(X, Y);
 
-        return NodeType switch
+        switch (NodeType)
         {
-            NodeType.FrameCorner or NodeType.ImpostEnd or NodeType.ImpostSplit => new MoveNodeCommand(Element, Index, _dragStartPos, finalPos),
-            NodeType.ArcControl => new MoveArcControlPointCommand(Element, SegmentIndex, _dragStartBulge, finalPos),
-            _ => null,
-        };
+            case NodeType.FrameCorner:
+            case NodeType.ImpostEnd:
+            case NodeType.ImpostSplit:
+                return new MoveNodeCommand(Element, Index, _dragStartPos, finalPos, _dragStartRule);
+
+            case NodeType.ArcControl:
+                return new MoveArcControlPointCommand(Element, SegmentIndex, _dragStartBulge, finalPos);
+
+            default:
+                return null;
+        }
     }
 
     protected override void OnSelectedChanged()

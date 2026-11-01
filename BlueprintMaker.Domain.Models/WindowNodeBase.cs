@@ -98,4 +98,11 @@ public abstract class WindowNodeBase : IWindowNode
         _rule = null;
         _localContour = contour;
     }
+
+    public void RestoreRule(IDerivationRule? rule)
+    {
+        _rule = rule;
+        if (rule != null)
+            _localContour = null;  // разморозить — контур будет вычисляться через Rule
+    }
 }

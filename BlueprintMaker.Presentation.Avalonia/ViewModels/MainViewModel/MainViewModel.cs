@@ -77,6 +77,9 @@ public partial class MainViewModel : ReactiveObject
     public ReactiveCommand<SelectableElement, Unit> SelectElementCommand { get; }
     public ReactiveCommand<decimal, Unit> MaterializeCommand { get; }
 
+    public Interaction<MaterializeOptions, MaterializeOptions?> AskMaterialize { get; } = new();
+    public ReactiveCommand<Unit, Unit> MaterializeAllCommand { get; }
+
     public ReactiveCommand<Unit, Unit> InsertVerticalImpostCommand { get; }
     public ReactiveCommand<Unit, Unit> InsertHorizontalImpostCommand { get; }
     public ReactiveCommand<decimal, Unit> InsertMultipleVerticalImpostsCommand { get; }
@@ -145,6 +148,9 @@ public partial class MainViewModel : ReactiveObject
         // Выбор и материализация
         SelectElementCommand = ReactiveCommand.Create<SelectableElement>(SelectElement);
         MaterializeCommand = CreateMaterializeCommand(canMaterialize);
+
+        MaterializeAllCommand = ReactiveCommand.CreateFromTask(MaterializeAllAsync, hasWindow);
+        ReportErrors(MaterializeAllCommand);
 
         // Вставка элементов
         InsertVerticalImpostCommand = CreateInsertImpostCommand(AxisOrientation.Vertical, canChangeSpace);

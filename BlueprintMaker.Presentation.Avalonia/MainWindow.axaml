@@ -49,6 +49,8 @@
 					HotKey="Ctrl+Y"
 					Padding="10,2"/>
 
+			<Button Content="Материализова все" Command="{Binding MaterializeAllCommand}"/>
+
 			<TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Margin="10,0,0,0"/>
 		</WrapPanel>
 

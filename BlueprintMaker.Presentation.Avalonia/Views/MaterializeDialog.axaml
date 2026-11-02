@@ -1,0 +1,28 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="BlueprintMaker.Presentation.Avalonia.Views.MaterializeDialog"
+        Title="Материализация"
+        Width="340" SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+    <StackPanel Margin="16" Spacing="12">
+        <TextBlock Text="Материализовать всё окно: раму, створки, импосты и доборы."
+                   TextWrapping="Wrap" Opacity="0.7"/>
+
+        <StackPanel Spacing="4">
+            <TextBlock Text="Ширина, мм"/>
+            <NumericUpDown x:Name="WidthBox"
+                           Minimum="1" Maximum="50" Increment="1"
+                           FormatString="0.##"/>
+        </StackPanel>
+
+        <ToggleSwitch x:Name="OverwriteSwitch"
+                      OnContent="Изменять уже материализованные"
+                      OffContent="Не трогать уже материализованные"/>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button Content="Материализовать" IsDefault="True" Click="Ok_Click"/>
+            <Button Content="Отмена" IsCancel="True" Click="Cancel_Click"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

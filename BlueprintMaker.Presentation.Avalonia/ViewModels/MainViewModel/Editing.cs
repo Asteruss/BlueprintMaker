@@ -4,12 +4,13 @@ using BlueprintMaker.Core.Geometry;
 using BlueprintMaker.Domain.Models;
 using BlueprintMaker.Domain.Models.Elements;
 using BlueprintMaker.Domain.Models.Materialisation;
+using BlueprintMaker.Presentation.Avalonia.Helpers;
 using ReactiveUI;
 using System;
 using System.Collections.Generic;
 using System.Reactive;
-using System.Threading.Tasks;
 using System.Reactive.Linq;
+using System.Threading.Tasks;
 
 namespace BlueprintMaker.Presentation.Avalonia.ViewModels;
 
@@ -197,5 +198,31 @@ public partial class MainViewModel
             steps.Add(new ChangeJointCommand(joint, type, forA: true));
 
         Commit(new MacroCommand(steps), $"Применен стык: {type}");
+    }
+
+    private MaterializeOptions _lastMaterialize = new(DefaultWidth, false);
+
+    private async Task MaterializeAllAsync()
+    {
+        if (_document.Root == null) return;
+
+        var options = await AskMaterialize.Handle(_lastMaterialize);
+        if (options == null) return;   // отмена
+        _lastMaterialize = options;
+
+        var command = MaterializeTreeCommand.Create(
+            _document.Root, options.Width, options.OverwriteExisting, out int skipped);
+
+        if (command.Count == 0)
+        {
+            StatusMessage = skipped > 0
+                ? "Все элементы уже материализованы. Включите «Изменять уже материализованные»."
+                : "Нечего материализовывать.";
+            return;
+        }
+
+        Commit(command,
+            $"Материализовано: {command.Count} эл., ширина {options.Width:0.##} мм" +
+            (skipped > 0 ? $", пропущено {skipped}" : ""));
     }
 }

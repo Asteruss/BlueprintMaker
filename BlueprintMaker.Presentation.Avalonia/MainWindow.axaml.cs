@@ -333,6 +333,12 @@ public partial class MainWindow : Window
             });
             ctx.SetOutput(file?.TryGetLocalPath());
         });
+
+        vm.AskMaterialize.RegisterHandler(async ctx =>
+        {
+            var dialog = new MaterializeDialog(ctx.Input);
+            ctx.SetOutput(await dialog.ShowDialog<MaterializeOptions?>(this));
+        });
     }
 
 

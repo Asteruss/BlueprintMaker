@@ -1,5 +1,6 @@
 ﻿using Avalonia.Media;
 using BlueprintMaker.Core.Geometry;
+using BlueprintMaker.Domain.Models;
 using ReactiveUI;
 using ReactiveUI.SourceGenerators;
 using System;
@@ -12,6 +13,9 @@ public partial class BoardViewModel : SelectableElement
 {
     [Reactive] private StreamGeometry _geometry;
     public DomainBoard SourceBoard { get; }
+
+    /// <summary>Элемент модели, которому принадлежит доска (для удаления)</summary>
+    public IWindowNode? Owner { get; init; }
 
     public BoardViewModel(DomainBoard board, ReactiveCommand<SelectableElement, Unit> selectCmd) : base(selectCmd)
     {

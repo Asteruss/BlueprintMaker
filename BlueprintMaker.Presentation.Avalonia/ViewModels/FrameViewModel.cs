@@ -140,7 +140,7 @@ public partial class FrameViewModel : SelectableElement
                 int boardIndex = 0;
                 foreach (var board in frame.Assembly.Boards)
                 {
-                    var bvm = new BoardViewModel(board, _selectCmd);
+                    var bvm = new BoardViewModel(board, _selectCmd) { Owner = frame };
 
                     // Сторона света
                     var mid = new Core.Geometry.Point(

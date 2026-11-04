@@ -225,4 +225,42 @@ public partial class MainViewModel
             $"Материализовано: {command.Count} эл., ширина {options.Width:0.##} мм" +
             (skipped > 0 ? $", пропущено {skipped}" : ""));
     }
+
+    private static bool IsDeletable(SelectableElement? el) => el is
+    ImpostViewModel or SashViewModel or JambViewModel or
+    FrameViewModel or LightSpaceViewModel or BoardViewModel or ImpostSegment;
+
+    private static IWindowNode? ResolveDeleteTarget(SelectableElement? el) => el switch
+    {
+        ImpostViewModel i => i.SourceImpost,
+        SashViewModel s => s.SourceSash,
+        JambViewModel j => j.SourceJamb,
+        FrameViewModel f => f.Frame,
+        LightSpaceViewModel ls => ls.SourceSpace,
+        BoardViewModel b => b.Owner,
+        ImpostSegment i => i.SourceImpost,
+        _ => null
+    };
+
+    private async Task DeleteSelectedAsync()
+    {
+        var target = ResolveDeleteTarget(SelectedElement);
+        if (target == null)
+        {
+            StatusMessage = "Не удалось определить элемент для удаления";
+            return;
+        }
+
+        var plan = ElementRemoval.Plan(target);
+        if (!plan.CanRemove)
+        {
+            StatusMessage = plan.BlockReason!;
+            await ShowMessage.Handle(plan.BlockReason!);
+            return;
+        }
+
+        var name = ElementRemoval.Describe(target);
+        Unselect();   // до удаления, чтобы не осталось ссылок на удалённые элементы
+        Commit(new DeleteElementCommand(plan), $"Удалено: {name}");
+    }
 }

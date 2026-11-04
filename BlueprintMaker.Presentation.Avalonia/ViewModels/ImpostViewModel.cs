@@ -32,7 +32,7 @@ public partial class ImpostViewModel : SelectableElement
             if (SourceImpost.Width > 0)
             {
                 if (SourceImpost.Assembly.Board != null)
-                    Boards.Add(new BoardViewModel(SourceImpost.Assembly.Board, SelectCommand));
+                    Boards.Add(new BoardViewModel(SourceImpost.Assembly.Board, SelectCommand) { Owner = SourceImpost });
             }
         }
         else 

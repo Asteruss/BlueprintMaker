@@ -105,4 +105,13 @@ public abstract class WindowNodeBase : IWindowNode
         if (rule != null)
             _localContour = null;  // разморозить — контур будет вычисляться через Rule
     }
+
+    public void InsertChildInternal(int index, IWindowNode child)
+    {
+        if (child.Parent != null)
+            throw new InvalidOperationException("Элемент уже имеет родителя.");
+
+        _children.Insert(MathCompat.Clamp(index, 0, _children.Count), child);
+        ((WindowNodeBase)child).Parent = this;
+    }
 }

@@ -18,6 +18,7 @@
 		<KeyBinding Gesture="Ctrl+Shift+S" Command="{Binding SaveAsCommand}"/>
 		<KeyBinding Gesture="Ctrl+O" Command="{Binding OpenCommand}"/>
 		<KeyBinding Gesture="Ctrl+N" Command="{Binding CreateWindowCommand}"/>
+	    <KeyBinding Gesture="Delete" Command="{Binding DeleteSelectedCommand}"/>
 	</Window.KeyBindings>
 
 	<Design.DataContext>
@@ -50,6 +51,7 @@
 					Padding="10,2"/>
 
 			<Button Content="Материализова все" Command="{Binding MaterializeAllCommand}"/>
+			<Button Content="Удалить" Command="{Binding DeleteSelectedCommand}"/>
 
 			<TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Margin="10,0,0,0"/>
 		</WrapPanel>

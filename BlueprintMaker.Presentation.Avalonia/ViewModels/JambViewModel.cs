@@ -36,7 +36,7 @@ public partial class JambViewModel : SelectableElement
         {
             var board = SourceJamb.Board;
             if (board != null)
-                Boards.Add(new BoardViewModel(board, SelectCommand));
+                Boards.Add(new BoardViewModel(board, SelectCommand) { Owner = SourceJamb });
         }
         else
         {

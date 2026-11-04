@@ -6,10 +6,11 @@ using BlueprintMaker.Application.Commands;
 using BlueprintMaker.Core.Geometry;
 using BlueprintMaker.Domain.Models.Elements;
 using BlueprintMaker.Domain.Models.Rules;
+using BlueprintMaker.Presentation.Avalonia.Helpers;
 using BlueprintMaker.Presentation.Avalonia.ViewModels;
 using BlueprintMaker.Presentation.Avalonia.Views;
 using System;
-using BlueprintMaker.Presentation.Avalonia.Helpers;
+using System.Reactive;
 using AvaloniaPoint = global::Avalonia.Point;
 using CorePoint = BlueprintMaker.Core.Geometry.Point;
 
@@ -338,6 +339,13 @@ public partial class MainWindow : Window
         {
             var dialog = new MaterializeDialog(ctx.Input);
             ctx.SetOutput(await dialog.ShowDialog<MaterializeOptions?>(this));
+        });
+
+        vm.ShowMessage.RegisterHandler(async ctx =>
+        {
+            var d = new ChoiceDialog(ctx.Input, "OK", "", "");
+            await d.ShowDialog<ChoiceResult>(this);
+            ctx.SetOutput(Unit.Default);
         });
     }
 

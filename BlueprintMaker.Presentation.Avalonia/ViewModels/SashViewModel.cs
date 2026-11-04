@@ -68,7 +68,7 @@ public partial class SashViewModel : SelectableElement
             for (int i = 0; i < SourceSash.Assembly.Boards.Count; i++)
             {
                 var board = SourceSash.Assembly.Boards[i];
-                var bvm = new BoardViewModel(board, SelectCommand);
+                var bvm = new BoardViewModel(board, SelectCommand) { Owner = SourceSash };
 
                 // Сторона света
                 var mid = new Core.Geometry.Point(

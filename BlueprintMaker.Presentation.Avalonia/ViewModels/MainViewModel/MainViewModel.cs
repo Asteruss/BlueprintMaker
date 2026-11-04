@@ -1,4 +1,6 @@
-﻿using BlueprintMaker.Application;
+﻿using Avalonia.Controls;
+using Avalonia.Media;
+using BlueprintMaker.Application;
 using BlueprintMaker.Core.Geometry;
 using BlueprintMaker.Domain.Models;
 using BlueprintMaker.Domain.Models.Elements;
@@ -11,7 +13,6 @@ using System.Collections.ObjectModel;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using Avalonia.Media;
 
 namespace BlueprintMaker.Presentation.Avalonia.ViewModels;
 
@@ -80,6 +81,9 @@ public partial class MainViewModel : ReactiveObject
     public Interaction<MaterializeOptions, MaterializeOptions?> AskMaterialize { get; } = new();
     public ReactiveCommand<Unit, Unit> MaterializeAllCommand { get; }
 
+    public Interaction<string, Unit> ShowMessage { get; } = new();
+    public ReactiveCommand<Unit, Unit> DeleteSelectedCommand { get; }
+
     public ReactiveCommand<Unit, Unit> InsertVerticalImpostCommand { get; }
     public ReactiveCommand<Unit, Unit> InsertHorizontalImpostCommand { get; }
     public ReactiveCommand<decimal, Unit> InsertMultipleVerticalImpostsCommand { get; }
@@ -109,6 +113,8 @@ public partial class MainViewModel : ReactiveObject
         var canSplitFrame = selected.Select(el => el is WireframeLine);
         var canSplitImpost = selected.Select(el => el is ImpostSegment);
         var canToggleArc = selected.Select(el => el is WireframeLine || el is ImpostSegment);
+        var canDelete = selected.Select(IsDeletable);
+        
 
         // Подписки
         AppSettings.Instance
@@ -151,6 +157,10 @@ public partial class MainViewModel : ReactiveObject
 
         MaterializeAllCommand = ReactiveCommand.CreateFromTask(MaterializeAllAsync, hasWindow);
         ReportErrors(MaterializeAllCommand);
+
+        // Удаление элемента
+        DeleteSelectedCommand = ReactiveCommand.CreateFromTask(DeleteSelectedAsync, canDelete);
+        ReportErrors(DeleteSelectedCommand);
 
         // Вставка элементов
         InsertVerticalImpostCommand = CreateInsertImpostCommand(AxisOrientation.Vertical, canChangeSpace);
@@ -246,6 +256,7 @@ public partial class MainViewModel : ReactiveObject
         _history.Execute(command);
         _modelChanged.OnNext(Unit.Default);
         UpdateHistoryState();
+        SelectedElement = null;
         if (status != null) StatusMessage = status;
     }
 

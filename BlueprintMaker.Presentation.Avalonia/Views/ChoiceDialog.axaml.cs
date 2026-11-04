@@ -13,8 +13,15 @@ public partial class ChoiceDialog : Window
         InitializeComponent();
         MessageText.Text = message;
         YesButton.Content = yes;
+
         NoButton.Content = no;
+        NoButton.IsVisible = !string.IsNullOrEmpty(no);
+
         CancelButton.Content = cancel;
+        CancelButton.IsVisible = !string.IsNullOrEmpty(cancel);
+
+        if (string.IsNullOrEmpty(no) && string.IsNullOrEmpty(cancel))
+            YesButton.IsCancel = true;
     }
 
     private void Yes_Click(object? sender, RoutedEventArgs e) => Close(ChoiceResult.Yes);

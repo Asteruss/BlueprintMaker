@@ -10,11 +10,13 @@ namespace BlueprintMaker.Domain.Models.Elements;
 public sealed class Impost : PhysicalElement
 {
     public ImpostAssembly Assembly { get; }
+    public AxisOrientation Orientation { get; }
     // Конструктор без ширины
     internal Impost(Guid id, IWindowNode parent, AxisOrientation orientation, double relativePosition)
         : base(id, localContour: null, rule: new ImpostPlacementRule(orientation, relativePosition))
     {
         Assembly = new ImpostAssembly(this);
+        Orientation = orientation;
     }
 
     public void UpdatePosition(double newRelativePosition)

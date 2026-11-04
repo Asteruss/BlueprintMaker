@@ -4,7 +4,6 @@ using BlueprintMaker.Core.Geometry;
 using BlueprintMaker.Domain.Models;
 using BlueprintMaker.Domain.Models.Elements;
 using BlueprintMaker.Domain.Models.Materialisation;
-using BlueprintMaker.Domain.Models.Rules;
 using BlueprintMaker.Presentation.Avalonia.Helpers;
 using ReactiveUI;
 using ReactiveUI.SourceGenerators;
@@ -72,7 +71,7 @@ public partial class FrameViewModel : SelectableElement
         Imposts.Clear();
         Jambs.Clear();
         Children.Clear();
-        FrameDragHandle = null; 
+        FrameDragHandle = null;
         Dimensions.Clear();
 
         BuildTree(Frame, this);
@@ -140,7 +139,7 @@ public partial class FrameViewModel : SelectableElement
                 int boardIndex = 0;
                 foreach (var board in frame.Assembly.Boards)
                 {
-                    var bvm = new BoardViewModel(board, _selectCmd) { Owner = frame };
+                    var bvm = new BoardViewModel(board, _selectCmd);
 
                     // Сторона света
                     var mid = new Core.Geometry.Point(
@@ -173,7 +172,8 @@ public partial class FrameViewModel : SelectableElement
             }
 
             FrameDragHandle = new FrameDragHandle(frame, _selectCmd);
-            CreateOverallDimensions(frame);
+            // ВНИМАНИЕ: CreateOverallDimensions / CreateChainDimensions перенесены
+            // ПОСЛЕ рекурсии по детям — иначе коллекция Imposts ещё пуста.
         }
         else if (node is LightSpace ls)
         {
@@ -189,28 +189,14 @@ public partial class FrameViewModel : SelectableElement
 
             var impContour = impost.GetContour();
 
-            var orientation = (impost.Rule as ImpostPlacementRule)?.Orientation ?? AxisOrientation.Vertical;
-            var impLabel = orientation == AxisOrientation.Vertical ? "В" : "Г";
+            // Метка ориентации берётся НАПРЯМУЮ из Impost.Orientation — это
+            // начальное значение, заданное при создании импоста. Оно НЕ меняется
+            // при drag'е node (Rule замораживается, но Orientation сохраняется).
+            // Поэтому метка всегда корректна: «В» для вертикального, «Г» для горизонтального.
+            var impLabel = impost.Orientation == AxisOrientation.Horizontal ? "Г" : "В";
 
             // Длина
-            double impLength;
-            if (impost.Width > 0 && impost.Assembly.Board != null)
-            {
-                impLength = Math.Max(ContourMath.LongestEdgeLength(impost.Assembly.Board.PhysicalContour), impost.Assembly.Board.Length);
-            }
-            else
-            {
-                var impFrom = impContour.Vertices[0].Position;
-                var impTo = impContour.Vertices[impContour.Vertices.Count - 1].Position;
-                var impBulge = impContour.Vertices[0].Bulge;
-                if (Math.Abs(impBulge) < GeometryConstants.Tolerance)
-                    impLength = impFrom.DistanceTo(impTo);
-                else
-                {
-                    var arc = BulgeMath.GetArcParameters(impFrom, impTo, impBulge);
-                    impLength = arc.Radius * Math.Abs(arc.SweepAngle);
-                }
-            }
+            double impLength = GetImpostLength(impost);
 
             impVM.DisplayName = $"Импост {impLabel} {impLength:F0}мм";
 
@@ -250,19 +236,29 @@ public partial class FrameViewModel : SelectableElement
             var jambSide = jamb.Side == JambSide.Inner ? "Внутр." : "Внеш.";
             jvm.DisplayName = $"Добор {jambSide} {jambLength:F0}мм";
             parentVM.Children.Add(jvm);
-            Jambs.Add(jvm); 
+            Jambs.Add(jvm);
             return;
         }
 
         foreach (var child in node.Children)
             BuildTree(child, parentVM);
+
+        // === Размеры создаются ПОСЛЕ того, как всё дерево построено ===
+        // Только тогда коллекция Imposts уже заполнена.
+        // ВНИМАНИЕ: Sash наследуется от Frame, поэтому "node is Frame" сработало бы
+        // и для створки — это приводило к багу: габариты створки рисовались как
+        // для новой рамы. Явно исключаем Sash.
+        if (node is Frame fr && node is not Sash)
+        {
+            CreateOverallDimensions(fr);
+            CreateChainDimensions(fr);
+        }
     }
 
     private void CreateOverallDimensions(Frame frame)
     {
         var bounds = frame.GetContour().BoundingBox;
 
-        // Учесть внешние доборы
         foreach (var child in frame.Children)
         {
             if (child is Jamb jamb && jamb.Side == JambSide.Outer && jamb.Width > 0)
@@ -273,20 +269,19 @@ public partial class FrameViewModel : SelectableElement
             }
         }
 
-        const double offset = 30;
-        const double tickLen = 5;  // засечки 5px
+        // offset = 55: общий габарит теперь ВНЕШНИЙ (дальше от рамы),
+        // цепочка внутренних размеров — ближе (offset = 30).
+        const double offset = 55;
+        const double tickLen = 2.5;
 
+        // === СНИЗУ — ширина ===
         double bottomY = bounds.MaxY + offset;
-        double bCenterX = (bounds.MinX + bounds.MaxX) / 2.0;
-
         var bGeom = new StreamGeometry();
         using (var ctx = bGeom.Open())
         {
-            // Размерная линия
             ctx.BeginFigure(new AvaloniaPoint(bounds.MinX, bottomY), false);
             ctx.LineTo(new AvaloniaPoint(bounds.MaxX, bottomY));
             ctx.EndFigure(false);
-            // Засечки — вертикальные, на концах
             ctx.BeginFigure(new AvaloniaPoint(bounds.MinX, bottomY - tickLen), false);
             ctx.LineTo(new AvaloniaPoint(bounds.MinX, bottomY + tickLen));
             ctx.EndFigure(false);
@@ -294,28 +289,19 @@ public partial class FrameViewModel : SelectableElement
             ctx.LineTo(new AvaloniaPoint(bounds.MaxX, bottomY + tickLen));
             ctx.EndFigure(false);
         }
-
-        var bDim = new DimensionViewModel(
-            bGeom,
-            $"{bounds.Width:F0}",
-            bCenterX,         // центр
-            bottomY - 8,      // над линией
-            0,                // горизонтальный
-            _selectCmd);
+        var bDim = new DimensionViewModel(bGeom, $"{bounds.Width:F0}",
+            (bounds.MinX + bounds.MaxX) / 2.0, bottomY - 8, 0, _selectCmd);
         Children.Add(bDim);
         Dimensions.Add(bDim);
 
+        // === СЛЕВА — высота ===
         double leftX = bounds.MinX - offset;
-        double lCenterY = (bounds.MinY + bounds.MaxY) / 2.0;
-
         var lGeom = new StreamGeometry();
         using (var ctx = lGeom.Open())
         {
-            // Размерная линия
             ctx.BeginFigure(new AvaloniaPoint(leftX, bounds.MinY), false);
             ctx.LineTo(new AvaloniaPoint(leftX, bounds.MaxY));
             ctx.EndFigure(false);
-            // Засечки — горизонтальные, на концах
             ctx.BeginFigure(new AvaloniaPoint(leftX - tickLen, bounds.MinY), false);
             ctx.LineTo(new AvaloniaPoint(leftX + tickLen, bounds.MinY));
             ctx.EndFigure(false);
@@ -323,16 +309,302 @@ public partial class FrameViewModel : SelectableElement
             ctx.LineTo(new AvaloniaPoint(leftX + tickLen, bounds.MaxY));
             ctx.EndFigure(false);
         }
-
-        var lDim = new DimensionViewModel(
-            lGeom,
-            $"{bounds.Height:F0}",
-            leftX - 8,        // слева от линии
-            lCenterY,         // центр
-            -90,              // против часовой
-            _selectCmd);
+        var lDim = new DimensionViewModel(lGeom, $"{bounds.Height:F0}",
+            leftX - 8, (bounds.MinY + bounds.MaxY) / 2.0, -90, _selectCmd);
         Children.Add(lDim);
         Dimensions.Add(lDim);
+    }
+
+    /// <summary>
+    /// Цепочки размеров строго на ДВУХ перпендикулярных линиях:
+    /// горизонтальная снизу и вертикальная слева. Никаких наклонных
+    /// размерных линий.
+    ///
+    /// Источники координат — ТОЛЬКО осевые линии, независимо от материализации:
+    ///   - рама: каждая вершина внешнего контура; для дугового сегмента
+    ///     дополнительно — вершина дуги (apex, наиболее удалённая от хорды точка)
+    ///   - импост: только КРАЙНИЕ точки central line (первая и последняя вершина);
+    ///     точки ImpostSplit (в середине) НЕ учитываются; для дугового сегмента
+    ///     central line — вершина дуги
+    ///   - створки и доборы игнорируются
+    ///
+    /// Если осевая линия перпендикулярна (оба конца на одной вертикали/горизонтали),
+    /// Distinct() убирает дубликат — в цепочке остаётся ОДНА отметка.
+    /// Если наклонная — в цепочке остаются ДВЕ разные координаты, между ними
+    /// образуется отрезок с размером = проекция импоста на эту ось.
+    /// Ориентацию импоста НЕ используем — только фактические координаты концов.
+    /// </summary>
+    private void CreateChainDimensions(Frame frame)
+    {
+        var bounds = frame.GetContour().BoundingBox;
+
+        // offset = 30: внутренние размеры (цепочка) ближе к раме,
+        // общий габарит — снаружи (offset = 55).
+        const double offset = 30;
+        const double tickLen = 2.5;
+
+        // === Сбор всех ключевых координат ===
+        // X — для нижней (горизонтальной) цепочки,
+        // Y — для левой (вертикальной) цепочки.
+        var xStops = new List<double>();
+        var yStops = new List<double>();
+
+        // 1) Рама: все вершины внешнего контура + apex каждого дугового сегмента
+        var frameContour = frame.GetContour();
+        int nFrame = frameContour.Vertices.Count;
+        bool frameClosed = frameContour.IsClosed;
+        for (int i = 0; i < nFrame; i++)
+        {
+            var v = frameContour.Vertices[i];
+            xStops.Add(v.Position.X);
+            yStops.Add(v.Position.Y);
+
+            // Дуговой сегмент: v → следующий (замыкаем, если контур закрыт)
+            int nextIdx = (i + 1) % nFrame;
+            if (!frameClosed && nextIdx == 0) break;
+
+            var nextV = frameContour.Vertices[nextIdx];
+            if (Math.Abs(v.Bulge) > GeometryConstants.Tolerance)
+            {
+                var apex = ComputeArcApex(v.Position, nextV.Position, v.Bulge);
+                if (apex.HasValue)
+                {
+                    xStops.Add(apex.Value.X);
+                    yStops.Add(apex.Value.Y);
+                }
+            }
+        }
+
+        // 2) Импосты: только КРАЙНИЕ точки central line (start, end),
+        //    без ImpostSplit. Если central line дуговая — добавим apex дуги.
+        foreach (var impVM in Imposts)
+        {
+            var impost = impVM.SourceImpost;
+            var contour = impost.GetContour();
+            if (contour.Vertices.Count < 2) continue;
+
+            var start = contour.Vertices[0].Position;
+            var end = contour.Vertices[contour.Vertices.Count - 1].Position;
+
+            // Оба конца в обе цепочки. Если совпадают по одной оси (tol),
+            // Distinct() их сольёт → останется одна отметка.
+            xStops.Add(start.X);
+            xStops.Add(end.X);
+            yStops.Add(start.Y);
+            yStops.Add(end.Y);
+
+            // Apex дуговых сегментов central line (для надёжности обходим все,
+            // хотя обычно central line импоста — один отрезок)
+            for (int i = 0; i < contour.Vertices.Count - 1; i++)
+            {
+                var v = contour.Vertices[i];
+                var nextV = contour.Vertices[i + 1];
+                if (Math.Abs(v.Bulge) > GeometryConstants.Tolerance)
+                {
+                    var apex = ComputeArcApex(v.Position, nextV.Position, v.Bulge);
+                    if (apex.HasValue)
+                    {
+                        xStops.Add(apex.Value.X);
+                        yStops.Add(apex.Value.Y);
+                    }
+                }
+            }
+        }
+
+        xStops.Sort();
+        xStops = xStops.Distinct().ToList();
+        yStops.Sort();
+        yStops = yStops.Distinct().ToList();
+
+        // Рисуем цепочку только если есть хотя бы один разделитель внутри —
+        // иначе это просто дубликат общих габаритов.
+        if (xStops.Count > 2)
+        {
+            double chainY = bounds.MaxY + offset;
+            for (int i = 0; i < xStops.Count - 1; i++)
+            {
+                double ax = xStops[i];
+                double bx = xStops[i + 1];
+                double segLen = bx - ax;
+
+                // Пропускаем нулевые / около-нулевые сегменты — они возникают,
+                // когда координаты близки, но не точно равны (floating point),
+                // и Distinct() их не сливает. Без этого рисовался бы текст "0".
+                if (segLen < 0.5) continue;
+
+                var geom = new StreamGeometry();
+                using (var ctx = geom.Open())
+                {
+                    ctx.BeginFigure(new AvaloniaPoint(ax, chainY), false);
+                    ctx.LineTo(new AvaloniaPoint(bx, chainY));
+                    ctx.EndFigure(false);
+                    ctx.BeginFigure(new AvaloniaPoint(ax, chainY - tickLen), false);
+                    ctx.LineTo(new AvaloniaPoint(ax, chainY + tickLen));
+                    ctx.EndFigure(false);
+                    ctx.BeginFigure(new AvaloniaPoint(bx, chainY - tickLen), false);
+                    ctx.LineTo(new AvaloniaPoint(bx, chainY + tickLen));
+                    ctx.EndFigure(false);
+                }
+
+                double textX = (ax + bx) / 2.0;
+                var dim = new DimensionViewModel(geom, $"{segLen:F0}", textX, chainY - 8, 0, _selectCmd);
+                Children.Add(dim);
+                Dimensions.Add(dim);
+            }
+        }
+
+        if (yStops.Count > 2)
+        {
+            double chainX = bounds.MinX - offset;
+            for (int i = 0; i < yStops.Count - 1; i++)
+            {
+                double ay = yStops[i];
+                double by = yStops[i + 1];
+                double segLen = by - ay;
+
+                // Аналогично — пропускаем нулевые сегменты, иначе текст "0".
+                if (segLen < 0.5) continue;
+
+                var geom = new StreamGeometry();
+                using (var ctx = geom.Open())
+                {
+                    ctx.BeginFigure(new AvaloniaPoint(chainX, ay), false);
+                    ctx.LineTo(new AvaloniaPoint(chainX, by));
+                    ctx.EndFigure(false);
+                    ctx.BeginFigure(new AvaloniaPoint(chainX - tickLen, ay), false);
+                    ctx.LineTo(new AvaloniaPoint(chainX + tickLen, ay));
+                    ctx.EndFigure(false);
+                    ctx.BeginFigure(new AvaloniaPoint(chainX - tickLen, by), false);
+                    ctx.LineTo(new AvaloniaPoint(chainX + tickLen, by));
+                    ctx.EndFigure(false);
+                }
+
+                double textY = (ay + by) / 2.0;
+                var dim = new DimensionViewModel(geom, $"{segLen:F0}", chainX - 8, textY, -90, _selectCmd);
+                Children.Add(dim);
+                Dimensions.Add(dim);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Вершина дуги (apex) — точка на дуге, наиболее удалённая от хорды.
+    /// Используется для цепочек размеров: дуговой сегмент добавляет в
+    /// xStops/yStops координаты своей вершины, чтобы размерные линии
+    /// охватывали экстремумы дуги, а не только её концы.
+    /// Возвращает null для прямого сегмента (Bulge == 0) или нулевой хорды.
+    /// </summary>
+    private static Point? ComputeArcApex(Point from, Point to, double bulge)
+    {
+        if (Math.Abs(bulge) < GeometryConstants.Tolerance) return null;
+
+        var mid = new Point((from.X + to.X) / 2.0, (from.Y + to.Y) / 2.0);
+
+        var ab = new Point(to.X - from.X, to.Y - from.Y);
+        double abLen = Math.Sqrt(ab.X * ab.X + ab.Y * ab.Y);
+        if (abLen < 1e-9) return null;
+
+        // Перпендикуляр к хорде (единичный)
+        var perp = new Point(ab.Y / abLen, -ab.X / abLen);
+        // Sagitta = abLen * bulge / 2 (стандартная формула для Bulge = tan(α/4))
+        double s = abLen * bulge / 2.0;
+
+        // Знак bulge определяет сторону: >0 — дуга против часовой, perp уже
+        // ориентирован правильно; <0 — инвертируем перпендикуляр
+        if (bulge < 0)
+        {
+            perp = new Point(-perp.X, -perp.Y);
+        }
+
+        return new Point(mid.X + perp.X * s, mid.Y + perp.Y * s);
+    }
+
+    /// <summary>
+    /// Создаёт один сегмент цепочки размеров (от точки A до точки B).
+    /// horizontal = true — горизонтальная линия, текст над.
+    /// horizontal = false — вертикальная линия, текст слева (повёрнут -90°).
+    /// </summary>
+    private void CreateChainSegment(
+        double ax, double ay, double bx, double by,
+        double tickLen, bool horizontal)
+    {
+        double length;
+        double textX, textY, angle;
+
+        if (horizontal)
+        {
+            length = Math.Abs(bx - ax);
+            textX = (ax + bx) / 2.0;
+            textY = ay - 8;
+            angle = 0;
+        }
+        else
+        {
+            length = Math.Abs(by - ay);
+            textX = ax - 8;
+            textY = (ay + by) / 2.0;
+            angle = -90;
+        }
+
+        var geom = new StreamGeometry();
+        using (var ctx = geom.Open())
+        {
+            // Линия
+            ctx.BeginFigure(new AvaloniaPoint(ax, ay), false);
+            ctx.LineTo(new AvaloniaPoint(bx, by));
+            ctx.EndFigure(false);
+            // Засечки
+            if (horizontal)
+            {
+                ctx.BeginFigure(new AvaloniaPoint(ax, ay - tickLen), false);
+                ctx.LineTo(new AvaloniaPoint(ax, ay + tickLen));
+                ctx.EndFigure(false);
+                ctx.BeginFigure(new AvaloniaPoint(bx, by - tickLen), false);
+                ctx.LineTo(new AvaloniaPoint(bx, by + tickLen));
+                ctx.EndFigure(false);
+            }
+            else
+            {
+                ctx.BeginFigure(new AvaloniaPoint(ax - tickLen, ay), false);
+                ctx.LineTo(new AvaloniaPoint(ax + tickLen, ay));
+                ctx.EndFigure(false);
+                ctx.BeginFigure(new AvaloniaPoint(bx - tickLen, by), false);
+                ctx.LineTo(new AvaloniaPoint(bx + tickLen, by));
+                ctx.EndFigure(false);
+            }
+        }
+
+        var dim = new DimensionViewModel(geom, $"{length:F0}", textX, textY, angle, _selectCmd);
+        Children.Add(dim);
+        Dimensions.Add(dim);
+    }
+
+    /// <summary>
+    /// Длина импоста — расстояние между концами central line.
+    /// Если импост материализован (Width &gt; 0 и Board создан) — берётся
+    /// максимум из длины доски и самой длинной грани PhysicalContour
+    /// (то же, что в BuildTree для DisplayName).
+    /// Если дуговой — длина дуги по Bulge.
+    /// </summary>
+    private static double GetImpostLength(Impost impost)
+    {
+        if (impost.Width > 0 && impost.Assembly.Board != null)
+            return Math.Max(
+                ContourMath.LongestEdgeLength(impost.Assembly.Board.PhysicalContour),
+                impost.Assembly.Board.Length);
+
+        var contour = impost.GetContour();
+        if (contour.Vertices.Count < 2) return 0;
+
+        var from = contour.Vertices[0].Position;
+        var to = contour.Vertices[contour.Vertices.Count - 1].Position;
+        var bulge = contour.Vertices[0].Bulge;
+
+        if (Math.Abs(bulge) < GeometryConstants.Tolerance)
+            return from.DistanceTo(to);
+
+        var arc = BulgeMath.GetArcParameters(from, to, bulge);
+        return arc.Radius * Math.Abs(arc.SweepAngle);
     }
 
     /// <summary>

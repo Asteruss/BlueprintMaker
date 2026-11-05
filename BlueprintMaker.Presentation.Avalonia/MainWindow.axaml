@@ -18,7 +18,7 @@
 		<KeyBinding Gesture="Ctrl+Shift+S" Command="{Binding SaveAsCommand}"/>
 		<KeyBinding Gesture="Ctrl+O" Command="{Binding OpenCommand}"/>
 		<KeyBinding Gesture="Ctrl+N" Command="{Binding CreateWindowCommand}"/>
-	    <KeyBinding Gesture="Delete" Command="{Binding DeleteSelectedCommand}"/>
+		<KeyBinding Gesture="Delete" Command="{Binding DeleteSelectedCommand}"/>
 	</Window.KeyBindings>
 
 	<Design.DataContext>
@@ -58,420 +58,431 @@
 
 		<!-- Дерево элементов -->
 		<TreeView Grid.Row="2" Grid.Column="0" ItemsSource="{Binding Frames}" Background="WhiteSmoke">
-    <TreeView.Styles>
-        <Style Selector="TreeViewItem">
-            <Setter Property="IsExpanded" Value="True"/>
-            <Setter Property="Padding" Value="8,1"/>
-        </Style>
-    </TreeView.Styles>
+			<TreeView.Styles>
+				<Style Selector="TreeViewItem">
+					<Setter Property="IsExpanded" Value="True"/>
+					<Setter Property="Padding" Value="8,1"/>
+				</Style>
+			</TreeView.Styles>
 
-    <TreeView.DataTemplates>
-        <!-- Рама -->
-        <TreeDataTemplate DataType="vm:FrameViewModel" ItemsSource="{Binding TreeChildren}">
-            <Button Command="{Binding SelectCommand}" CommandParameter="{Binding}"
-                    Padding="2" Background="Transparent" BorderThickness="0">
-                <TextBlock Text="{Binding DisplayName}" Foreground="Black"/>
-            </Button>
-        </TreeDataTemplate>
+			<TreeView.DataTemplates>
+				<!-- Рама -->
+				<TreeDataTemplate DataType="vm:FrameViewModel" ItemsSource="{Binding TreeChildren}">
+					<Button Command="{Binding SelectCommand}" CommandParameter="{Binding}"
+							Padding="2" Background="Transparent" BorderThickness="0">
+						<TextBlock Text="{Binding DisplayName}" Foreground="Black"/>
+					</Button>
+				</TreeDataTemplate>
 
-        <!-- Доска (сторона + ширина) -->
-        <TreeDataTemplate DataType="vm:BoardViewModel">
-            <Button Command="{Binding SelectCommand}" CommandParameter="{Binding}"
-                    Padding="2" Background="Transparent" BorderThickness="0">
-                <TextBlock Text="{Binding DisplayName}" Foreground="DarkSlateGray"/>
-            </Button>
-        </TreeDataTemplate>
+				<!-- Доска (сторона + ширина) -->
+				<TreeDataTemplate DataType="vm:BoardViewModel">
+					<Button Command="{Binding SelectCommand}" CommandParameter="{Binding}"
+							Padding="2" Background="Transparent" BorderThickness="0">
+						<TextBlock Text="{Binding DisplayName}" Foreground="DarkSlateGray"/>
+					</Button>
+				</TreeDataTemplate>
 
-        <!-- Световой проём -->
-        <TreeDataTemplate DataType="vm:LightSpaceViewModel" ItemsSource="{Binding TreeChildren}">
-            <Button Command="{Binding SelectCommand}" CommandParameter="{Binding}"
-                    Padding="2" Background="Transparent" BorderThickness="0">
-                <TextBlock Text="Световой проём" Foreground="Gray"/>
-            </Button>
-        </TreeDataTemplate>
+				<!-- Световой проём -->
+				<TreeDataTemplate DataType="vm:LightSpaceViewModel" ItemsSource="{Binding TreeChildren}">
+					<Button Command="{Binding SelectCommand}" CommandParameter="{Binding}"
+							Padding="2" Background="Transparent" BorderThickness="0">
+						<TextBlock Text="Световой проём" Foreground="Gray"/>
+					</Button>
+				</TreeDataTemplate>
 
-        <!-- Импост -->
-        <TreeDataTemplate DataType="vm:ImpostViewModel" ItemsSource="{Binding TreeChildren}">
-            <Button Command="{Binding SelectCommand}" CommandParameter="{Binding}"
-                    Padding="2" Background="Transparent" BorderThickness="0">
-                <TextBlock Text="{Binding DisplayName}" Foreground="Black"/>
-            </Button>
-        </TreeDataTemplate>
+				<!-- Импост -->
+				<TreeDataTemplate DataType="vm:ImpostViewModel" ItemsSource="{Binding TreeChildren}">
+					<Button Command="{Binding SelectCommand}" CommandParameter="{Binding}"
+							Padding="2" Background="Transparent" BorderThickness="0">
+						<TextBlock Text="{Binding DisplayName}" Foreground="Black"/>
+					</Button>
+				</TreeDataTemplate>
 
-        <!-- Створка -->
-        <TreeDataTemplate DataType="vm:SashViewModel" ItemsSource="{Binding TreeChildren}">
-            <Button Command="{Binding SelectCommand}" CommandParameter="{Binding}"
-                    Padding="2" Background="Transparent" BorderThickness="0">
-                <TextBlock Text="Створка" Foreground="Black"/>
-            </Button>
-        </TreeDataTemplate>
+				<!-- Створка -->
+				<TreeDataTemplate DataType="vm:SashViewModel" ItemsSource="{Binding TreeChildren}">
+					<Button Command="{Binding SelectCommand}" CommandParameter="{Binding}"
+							Padding="2" Background="Transparent" BorderThickness="0">
+						<TextBlock Text="Створка" Foreground="Black"/>
+					</Button>
+				</TreeDataTemplate>
 
-        <!-- Добор -->
-        <TreeDataTemplate DataType="vm:JambViewModel">
-            <Button Command="{Binding SelectCommand}" CommandParameter="{Binding}"
-                    Padding="2" Background="Transparent" BorderThickness="0">
-                <TextBlock Text="{Binding DisplayName}" Foreground="DarkGoldenrod"/>
-            </Button>
-        </TreeDataTemplate>
-    </TreeView.DataTemplates>
-</TreeView>
-		<!-- Холст -->
-		<Grid Grid.Row="2" Grid.Column="1" ClipToBounds="True">
-			<ItemsControl x:Name="DrawingCanvas" Background="#F9F9F9" ItemsSource="{Binding Frames}">
-				<ItemsControl.ItemsPanel>
-					<ItemsPanelTemplate>
-						<Panel HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-							<Canvas Background="Transparent"
-									Width="{Binding $parent[Panel].Bounds.Width}"
-									Height="{Binding $parent[Panel].Bounds.Height}"/>
-						</Panel>
-					</ItemsPanelTemplate>
-				</ItemsControl.ItemsPanel>
+				<!-- Добор -->
+				<TreeDataTemplate DataType="vm:JambViewModel">
+					<Button Command="{Binding SelectCommand}" CommandParameter="{Binding}"
+							Padding="2" Background="Transparent" BorderThickness="0">
+						<TextBlock Text="{Binding DisplayName}" Foreground="DarkGoldenrod"/>
+					</Button>
+				</TreeDataTemplate>
+			</TreeView.DataTemplates>
+		</TreeView>
+		<ScrollViewer x:Name="CanvasScroll" Grid.Row="2" Grid.Column="1"
+					  HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+					  Background="#E8E8E8" ClipToBounds="True">
+			<!-- Zoom через LayoutTransform: тогда ScrollViewer сам знает масштабированный размер -->
+			<LayoutTransformControl>
+				<LayoutTransformControl.LayoutTransform>
+					<ScaleTransform ScaleX="{ReflectionBinding Zoom, Source={x:Static local:AppSettings.Instance}}"
+									ScaleY="{ReflectionBinding Zoom, Source={x:Static local:AppSettings.Instance}}"/>
+				</LayoutTransformControl.LayoutTransform>
+				<!-- Холст -->
+				<Grid Width="6000" Height="6000">
+					<ItemsControl x:Name="DrawingCanvas" Background="#F9F9F9" ItemsSource="{Binding Frames}">
+						<ItemsControl.ItemsPanel>
+							<ItemsPanelTemplate>
+								<Panel HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+									<Canvas Background="Transparent"
+											Width="{Binding $parent[Panel].Bounds.Width}"
+											Height="{Binding $parent[Panel].Bounds.Height}"/>
+								</Panel>
+							</ItemsPanelTemplate>
+						</ItemsControl.ItemsPanel>
 
-				<ItemsControl.Styles>
-					<Style Selector="ItemsControl > ContentPresenter">
-						<Setter Property="Canvas.Left" Value="0"/>
-						<Setter Property="Canvas.Top" Value="0"/>
-					</Style>
-				</ItemsControl.Styles>
+						<ItemsControl.Styles>
+							<Style Selector="ItemsControl > ContentPresenter">
+								<Setter Property="Canvas.Left" Value="0"/>
+								<Setter Property="Canvas.Top" Value="0"/>
+							</Style>
+						</ItemsControl.Styles>
 
-				<ItemsControl.ItemTemplate>
-					<DataTemplate x:DataType="vm:FrameViewModel">
-						<Panel Width="{Binding $parent[Canvas].Bounds.Width}"
-							   Height="{Binding $parent[Canvas].Bounds.Height}"
-							   RenderTransformOrigin="0.5,0.5">
-							<Panel.RenderTransform>
-								<TransformGroup>
-									<ScaleTransform ScaleX="{ReflectionBinding Zoom, Source={x:Static local:AppSettings.Instance}}"
-													ScaleY="{ReflectionBinding Zoom, Source={x:Static local:AppSettings.Instance}}"/>
-									<TranslateTransform X="{ReflectionBinding PanX, Source={x:Static local:AppSettings.Instance}}"
-														Y="{ReflectionBinding PanY, Source={x:Static local:AppSettings.Instance}}"/>
-								</TransformGroup>
-							</Panel.RenderTransform>
+						<ItemsControl.ItemTemplate>
+							<DataTemplate x:DataType="vm:FrameViewModel">
+								<Panel Width="{Binding $parent[Canvas].Bounds.Width}"
+									   Height="{Binding $parent[Canvas].Bounds.Height}"
+									   RenderTransformOrigin="0.5,0.5">
+									<Panel.RenderTransform>
+										<TransformGroup>
+											<ScaleTransform ScaleX="{ReflectionBinding Zoom, Source={x:Static local:AppSettings.Instance}}"
+															ScaleY="{ReflectionBinding Zoom, Source={x:Static local:AppSettings.Instance}}"/>
+											<TranslateTransform X="{ReflectionBinding PanX, Source={x:Static local:AppSettings.Instance}}"
+																Y="{ReflectionBinding PanY, Source={x:Static local:AppSettings.Instance}}"/>
+										</TransformGroup>
+									</Panel.RenderTransform>
 
-							<!-- Скелет -->
-							<ItemsControl ItemsSource="{Binding Lines}" IsVisible="{Binding !IsMaterialized}">
-								<ItemsControl.ItemsPanel>
-									<ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
-								</ItemsControl.ItemsPanel>
-								<ItemsControl.Styles>
-									<Style Selector="ItemsControl > ContentPresenter">
-										<Setter Property="Canvas.Left" Value="0"/>
-										<Setter Property="Canvas.Top" Value="0"/>
-									</Style>
-								</ItemsControl.Styles>
-								<ItemsControl.ItemTemplate>
-									<DataTemplate x:DataType="vm:WireframeLine">
-										<Path Data="{Binding Geometry}"
-											  Stroke="{Binding StrokeColor}"
-											  StrokeThickness="{Binding StrokeThickness}"
-											  Fill="Transparent"
-											  PointerPressed="ElementPath_PointerPressed"/>
-									</DataTemplate>
-								</ItemsControl.ItemTemplate>
-							</ItemsControl>
+									<!-- Скелет -->
+									<ItemsControl ItemsSource="{Binding Lines}" IsVisible="{Binding !IsMaterialized}">
+										<ItemsControl.ItemsPanel>
+											<ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
+										</ItemsControl.ItemsPanel>
+										<ItemsControl.Styles>
+											<Style Selector="ItemsControl > ContentPresenter">
+												<Setter Property="Canvas.Left" Value="0"/>
+												<Setter Property="Canvas.Top" Value="0"/>
+											</Style>
+										</ItemsControl.Styles>
+										<ItemsControl.ItemTemplate>
+											<DataTemplate x:DataType="vm:WireframeLine">
+												<Path Data="{Binding Geometry}"
+													  Stroke="{Binding StrokeColor}"
+													  StrokeThickness="{Binding StrokeThickness}"
+													  Fill="Transparent"
+													  PointerPressed="ElementPath_PointerPressed"/>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
 
-							<!-- Доски -->
-							<ItemsControl ItemsSource="{Binding Boards}" IsVisible="{Binding IsMaterialized}">
-								<ItemsControl.ItemsPanel>
-									<ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
-								</ItemsControl.ItemsPanel>
-								<ItemsControl.Styles>
-									<Style Selector="ItemsControl > ContentPresenter">
-										<Setter Property="Canvas.Left" Value="0"/>
-										<Setter Property="Canvas.Top" Value="0"/>
-									</Style>
-								</ItemsControl.Styles>
-								<ItemsControl.ItemTemplate>
-									<DataTemplate x:DataType="vm:BoardViewModel">
-										<Path Data="{Binding Geometry}"
-											  Fill="Transparent"
-											  Stroke="{Binding FillColor}"
-											  StrokeThickness="2"
-											  PointerPressed="ElementPath_PointerPressed"/>
-									</DataTemplate>
-								</ItemsControl.ItemTemplate>
-							</ItemsControl>
+									<!-- Доски -->
+									<ItemsControl ItemsSource="{Binding Boards}" IsVisible="{Binding IsMaterialized}">
+										<ItemsControl.ItemsPanel>
+											<ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
+										</ItemsControl.ItemsPanel>
+										<ItemsControl.Styles>
+											<Style Selector="ItemsControl > ContentPresenter">
+												<Setter Property="Canvas.Left" Value="0"/>
+												<Setter Property="Canvas.Top" Value="0"/>
+											</Style>
+										</ItemsControl.Styles>
+										<ItemsControl.ItemTemplate>
+											<DataTemplate x:DataType="vm:BoardViewModel">
+												<Path Data="{Binding Geometry}"
+													  Fill="Transparent"
+													  Stroke="{Binding FillColor}"
+													  StrokeThickness="2"
+													  PointerPressed="ElementPath_PointerPressed"/>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
 
 
-							<ItemsControl ItemsSource="{Binding Spaces}">
-								<ItemsControl.ItemsPanel>
-									<ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
-								</ItemsControl.ItemsPanel>
-								<ItemsControl.Styles>
-									<Style Selector="ItemsControl > ContentPresenter">
-										<Setter Property="Canvas.Left" Value="0"/>
-										<Setter Property="Canvas.Top" Value="0"/>
-									</Style>
-								</ItemsControl.Styles>
-								<ItemsControl.ItemTemplate>
-									<DataTemplate x:DataType="vm:LightSpaceViewModel">
-										<Path Data="{Binding Geometry}"
-											  Fill="{Binding FillColor}"
-											  Stroke="Transparent"
-											  StrokeThickness="1"
-											  PointerPressed="ElementPath_PointerPressed"/>
-									</DataTemplate>
-								</ItemsControl.ItemTemplate>
-							</ItemsControl>
+									<ItemsControl ItemsSource="{Binding Spaces}">
+										<ItemsControl.ItemsPanel>
+											<ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
+										</ItemsControl.ItemsPanel>
+										<ItemsControl.Styles>
+											<Style Selector="ItemsControl > ContentPresenter">
+												<Setter Property="Canvas.Left" Value="0"/>
+												<Setter Property="Canvas.Top" Value="0"/>
+											</Style>
+										</ItemsControl.Styles>
+										<ItemsControl.ItemTemplate>
+											<DataTemplate x:DataType="vm:LightSpaceViewModel">
+												<Path Data="{Binding Geometry}"
+													  Fill="{Binding FillColor}"
+													  Stroke="Transparent"
+													  StrokeThickness="1"
+													  PointerPressed="ElementPath_PointerPressed"/>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
 
-							<!-- Импосты -->
-							<ItemsControl ItemsSource="{Binding Imposts}">
-								<ItemsControl.ItemsPanel>
-									<ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
-								</ItemsControl.ItemsPanel>
-								<ItemsControl.Styles>
-									<Style Selector="ItemsControl > ContentPresenter">
-										<Setter Property="Canvas.Left" Value="0"/>
-										<Setter Property="Canvas.Top" Value="0"/>
-									</Style>
-								</ItemsControl.Styles>
-								<ItemsControl.ItemTemplate>
-									<DataTemplate x:DataType="vm:ImpostViewModel">
-										<Panel>
-											<!-- Скелет (Сегменты) -->
-											<ItemsControl ItemsSource="{Binding Segments}" IsVisible="{Binding !IsMaterialized}">
-												<ItemsControl.ItemsPanel>
-													<ItemsPanelTemplate><Grid/></ItemsPanelTemplate>
-												</ItemsControl.ItemsPanel>
-												<ItemsControl.ItemTemplate>
-													<DataTemplate x:DataType="vm:ImpostSegment">
-														<Path Data="{Binding Geometry}"
-															  Stroke="{Binding StrokeColor}"
-															  StrokeThickness="{Binding StrokeThickness}"
-															  Cursor="{Binding DragCursor}"
-															  PointerPressed="ElementPath_PointerPressed"/>
-													</DataTemplate>
-												</ItemsControl.ItemTemplate>
-											</ItemsControl>
+									<!-- Импосты -->
+									<ItemsControl ItemsSource="{Binding Imposts}">
+										<ItemsControl.ItemsPanel>
+											<ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
+										</ItemsControl.ItemsPanel>
+										<ItemsControl.Styles>
+											<Style Selector="ItemsControl > ContentPresenter">
+												<Setter Property="Canvas.Left" Value="0"/>
+												<Setter Property="Canvas.Top" Value="0"/>
+											</Style>
+										</ItemsControl.Styles>
+										<ItemsControl.ItemTemplate>
+											<DataTemplate x:DataType="vm:ImpostViewModel">
+												<Panel>
+													<!-- Скелет (Сегменты) -->
+													<ItemsControl ItemsSource="{Binding Segments}" IsVisible="{Binding !IsMaterialized}">
+														<ItemsControl.ItemsPanel>
+															<ItemsPanelTemplate><Grid/></ItemsPanelTemplate>
+														</ItemsControl.ItemsPanel>
+														<ItemsControl.ItemTemplate>
+															<DataTemplate x:DataType="vm:ImpostSegment">
+																<Path Data="{Binding Geometry}"
+																	  Stroke="{Binding StrokeColor}"
+																	  StrokeThickness="{Binding StrokeThickness}"
+																	  Cursor="{Binding DragCursor}"
+																	  PointerPressed="ElementPath_PointerPressed"/>
+															</DataTemplate>
+														</ItemsControl.ItemTemplate>
+													</ItemsControl>
 
-											<!-- Доски (Материализованный брус) -->
-											<ItemsControl ItemsSource="{Binding Boards}" IsVisible="{Binding IsMaterialized}">
-												<ItemsControl.ItemsPanel>
-													<ItemsPanelTemplate><Grid/></ItemsPanelTemplate>
-												</ItemsControl.ItemsPanel>
-												<ItemsControl.ItemTemplate>
-													<DataTemplate x:DataType="vm:BoardViewModel">
-														<Path Data="{Binding Geometry}"
-															  Fill="Transparent"
-															  Stroke="{Binding FillColor}"
-															  StrokeThickness="1"
-															  PointerPressed="ElementPath_PointerPressed"/>
-													</DataTemplate>
-												</ItemsControl.ItemTemplate>
-											</ItemsControl>
+													<!-- Доски (Материализованный брус) -->
+													<ItemsControl ItemsSource="{Binding Boards}" IsVisible="{Binding IsMaterialized}">
+														<ItemsControl.ItemsPanel>
+															<ItemsPanelTemplate><Grid/></ItemsPanelTemplate>
+														</ItemsControl.ItemsPanel>
+														<ItemsControl.ItemTemplate>
+															<DataTemplate x:DataType="vm:BoardViewModel">
+																<Path Data="{Binding Geometry}"
+																	  Fill="Transparent"
+																	  Stroke="{Binding FillColor}"
+																	  StrokeThickness="1"
+																	  PointerPressed="ElementPath_PointerPressed"/>
+															</DataTemplate>
+														</ItemsControl.ItemTemplate>
+													</ItemsControl>
 
-										</Panel>
-									</DataTemplate>
-								</ItemsControl.ItemTemplate>
-							</ItemsControl>
+												</Panel>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
 
-							<ItemsControl ItemsSource="{Binding Sashes}">
-								<ItemsControl.ItemsPanel>
-									<ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
-								</ItemsControl.ItemsPanel>
-								<ItemsControl.Styles>
-									<Style Selector="ItemsControl > ContentPresenter">
-										<Setter Property="Canvas.Left" Value="0"/>
-										<Setter Property="Canvas.Top" Value="0"/>
-									</Style>
-								</ItemsControl.Styles>
-								<ItemsControl.ItemTemplate>
-									<DataTemplate x:DataType="vm:SashViewModel">
-										<ItemsControl ItemsSource="{Binding Boards}">
-											<ItemsControl.ItemsPanel>
-												<ItemsPanelTemplate><Grid/></ItemsPanelTemplate>
-											</ItemsControl.ItemsPanel>
-											<ItemsControl.ItemTemplate>
-												<DataTemplate x:DataType="vm:BoardViewModel">
-													<Path Data="{Binding Geometry}"
+									<ItemsControl ItemsSource="{Binding Sashes}">
+										<ItemsControl.ItemsPanel>
+											<ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
+										</ItemsControl.ItemsPanel>
+										<ItemsControl.Styles>
+											<Style Selector="ItemsControl > ContentPresenter">
+												<Setter Property="Canvas.Left" Value="0"/>
+												<Setter Property="Canvas.Top" Value="0"/>
+											</Style>
+										</ItemsControl.Styles>
+										<ItemsControl.ItemTemplate>
+											<DataTemplate x:DataType="vm:SashViewModel">
+												<ItemsControl ItemsSource="{Binding Boards}">
+													<ItemsControl.ItemsPanel>
+														<ItemsPanelTemplate><Grid/></ItemsPanelTemplate>
+													</ItemsControl.ItemsPanel>
+													<ItemsControl.ItemTemplate>
+														<DataTemplate x:DataType="vm:BoardViewModel">
+															<Path Data="{Binding Geometry}"
+																  Fill="Transparent"
+																  Stroke="{Binding FillColor}"
+																  StrokeThickness="1"
+																  PointerPressed="ElementPath_PointerPressed"/>
+														</DataTemplate>
+													</ItemsControl.ItemTemplate>
+												</ItemsControl>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
+
+									<ItemsControl ItemsSource="{Binding Jambs}">
+										<ItemsControl.ItemsPanel>
+											<ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
+										</ItemsControl.ItemsPanel>
+										<ItemsControl.Styles>
+											<Style Selector="ItemsControl > ContentPresenter">
+												<Setter Property="Canvas.Left" Value="0"/>
+												<Setter Property="Canvas.Top" Value="0"/>
+											</Style>
+										</ItemsControl.Styles>
+										<ItemsControl.ItemTemplate>
+											<DataTemplate x:DataType="vm:JambViewModel">
+												<Panel>
+													<!-- Немaтериализованный: контур -->
+													<Path Data="{Binding Outline}"
 														  Fill="Transparent"
-														  Stroke="{Binding FillColor}"
-														  StrokeThickness="1"
+														  Stroke="{Binding StrokeColor}" StrokeThickness="{Binding StrokeThickness}"
+														  IsVisible="{Binding !IsMaterialized}"
 														  PointerPressed="ElementPath_PointerPressed"/>
-												</DataTemplate>
-											</ItemsControl.ItemTemplate>
-										</ItemsControl>
-									</DataTemplate>
-								</ItemsControl.ItemTemplate>
-							</ItemsControl>
 
-							<ItemsControl ItemsSource="{Binding Jambs}">
-								<ItemsControl.ItemsPanel>
-									<ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
-								</ItemsControl.ItemsPanel>
-								<ItemsControl.Styles>
-									<Style Selector="ItemsControl > ContentPresenter">
-										<Setter Property="Canvas.Left" Value="0"/>
-										<Setter Property="Canvas.Top" Value="0"/>
-									</Style>
-								</ItemsControl.Styles>
-								<ItemsControl.ItemTemplate>
-									<DataTemplate x:DataType="vm:JambViewModel">
-										<Panel>
-											<!-- Немaтериализованный: контур -->
-											<Path Data="{Binding Outline}"
-												  Fill="Transparent"
-												  Stroke="{Binding StrokeColor}" StrokeThickness="{Binding StrokeThickness}"
-												  IsVisible="{Binding !IsMaterialized}"
-												  PointerPressed="ElementPath_PointerPressed"/>
+													<ItemsControl ItemsSource="{Binding Boards}" IsVisible="{Binding IsMaterialized}">
+														<ItemsControl.ItemsPanel>
+															<ItemsPanelTemplate><Grid/></ItemsPanelTemplate>
+														</ItemsControl.ItemsPanel>
+														<ItemsControl.ItemTemplate>
+															<DataTemplate x:DataType="vm:BoardViewModel">
+																<Path Data="{Binding Geometry}"
+																	  Fill="Gray"
+																	  Stroke="{Binding FillColor}"
+																	  StrokeThickness="1"
+																	  PointerPressed="ElementPath_PointerPressed"/>
+															</DataTemplate>
+														</ItemsControl.ItemTemplate>
+													</ItemsControl>
+												</Panel>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
 
-											<ItemsControl ItemsSource="{Binding Boards}" IsVisible="{Binding IsMaterialized}">
-												<ItemsControl.ItemsPanel>
-													<ItemsPanelTemplate><Grid/></ItemsPanelTemplate>
-												</ItemsControl.ItemsPanel>
-												<ItemsControl.ItemTemplate>
-													<DataTemplate x:DataType="vm:BoardViewModel">
-														<Path Data="{Binding Geometry}"
-															  Fill="Gray"
-															  Stroke="{Binding FillColor}"
-															  StrokeThickness="1"
-															  PointerPressed="ElementPath_PointerPressed"/>
-													</DataTemplate>
-												</ItemsControl.ItemTemplate>
-											</ItemsControl>
-										</Panel>
-									</DataTemplate>
-								</ItemsControl.ItemTemplate>
-							</ItemsControl>
-
-							<ItemsControl ItemsSource="{Binding JambSlots}">
-								<ItemsControl.ItemsPanel>
-									<ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
-								</ItemsControl.ItemsPanel>
-								<ItemsControl.Styles>
-									<Style Selector="ItemsControl > ContentPresenter" x:DataType="vm:JambSlotViewModel">
-										<Setter Property="Canvas.Left" Value="{Binding Left}"/>
-										<Setter Property="Canvas.Top" Value="{Binding Top}"/>
-									</Style>
-									<Style Selector="Button.jambArrow">
-										<Setter Property="Background" Value="Transparent"/>
-										<Setter Property="BorderThickness" Value="0"/>
-										<Setter Property="Padding" Value="0"/>
-										<Setter Property="Cursor" Value="Hand"/>
-									</Style>
-									<Style Selector="Button.jambArrow:pointerover /template/ ContentPresenter">
-										<Setter Property="Background" Value="Transparent"/>
-									</Style>
-									<Style Selector="Button.jambArrow:pointerover Path">
-										<Setter Property="Stroke" Value="#FF1B8F2E"/>
-										<Setter Property="StrokeThickness" Value="3.5"/>
-									</Style>
-								</ItemsControl.Styles>
-								<ItemsControl.ItemTemplate>
-									<DataTemplate x:DataType="vm:JambSlotViewModel">
-										<Button Classes="jambArrow" Width="24" Height="24"
-												Command="{Binding AddCommand}"
-												CommandParameter="{Binding Slot}"
-												ToolTip.Tip="Добавить добор"
-												RenderTransformOrigin="50%,50%">
-											<Button.RenderTransform>
-												<RotateTransform Angle="{Binding Angle}"/>
-											</Button.RenderTransform>
-											<Path Data="M -9,0 L 9,0 M 2,-7 L 9,0 L 2,7"
-												  Stroke="#FF2EA043" StrokeThickness="2.5"
-												  StrokeLineCap="Round" StrokeJoin="Round"
-												  HorizontalAlignment="Center" VerticalAlignment="Center"/>
-										</Button>
-									</DataTemplate>
-								</ItemsControl.ItemTemplate>
-							</ItemsControl>
-
-							<!-- Узлы (Nodes) -->
-							<ItemsControl ItemsSource="{Binding Nodes}" IsVisible="{Binding IsNodeVisible, Source={x:Static local:AppSettings.Instance}}">
-								<ItemsControl.ItemsPanel>
-									<ItemsPanelTemplate>
-										<Canvas />
-									</ItemsPanelTemplate>
-								</ItemsControl.ItemsPanel>
-								<ItemsControl.Styles>
-									<Style Selector="ItemsControl > ContentPresenter">
-										<Setter Property="Canvas.Left" Value="{ReflectionBinding X}"/>
-										<Setter Property="Canvas.Top" Value="{ReflectionBinding Y}"/>
-									</Style>
-								</ItemsControl.Styles>
-								<ItemsControl.ItemTemplate>
-									<DataTemplate x:DataType="vm:NodeViewModel">
-										<Ellipse Width="12" Height="12"
-												 Fill="{Binding FillColor}"
-												 Stroke="Black"
-												 StrokeThickness="1"
-												 Margin="-6,-6,0,0"
-												 PointerPressed="Node_PointerPressed"/>
-									</DataTemplate>
-								</ItemsControl.ItemTemplate>
-							</ItemsControl>
-
-							<!-- Размерные линии -->
-							<ItemsControl ItemsSource="{Binding Dimensions}"
-										  IsVisible="{ReflectionBinding IsDimensionsVisible, Source={x:Static local:AppSettings.Instance}}">
-								<ItemsControl.ItemsPanel>
-									<ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
-								</ItemsControl.ItemsPanel>
-								<ItemsControl.Styles>
-									<Style Selector="ItemsControl > ContentPresenter">
-										<Setter Property="Canvas.Left" Value="0"/>
-										<Setter Property="Canvas.Top" Value="0"/>
-									</Style>
-								</ItemsControl.Styles>
-								<ItemsControl.ItemTemplate>
-									<DataTemplate x:DataType="vm:DimensionViewModel">
-										<Panel>
-											<Path Data="{Binding Geometry}"
-												  Stroke="{Binding DisplayColor}"
-												  StrokeThickness="{Binding StrokeThickness}"
-												  Fill="Transparent"/>
-											<TextBlock Text="{Binding Text}"
-													   Foreground="Black"
-													   FontWeight="Bold"
-													   FontSize="10"
-													   RenderTransformOrigin="0.5,0.5"
-													   Margin="-10,-7,0,0">
-												<TextBlock.RenderTransform>
-													<TransformGroup>
+									<ItemsControl ItemsSource="{Binding JambSlots}">
+										<ItemsControl.ItemsPanel>
+											<ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
+										</ItemsControl.ItemsPanel>
+										<ItemsControl.Styles>
+											<Style Selector="ItemsControl > ContentPresenter" x:DataType="vm:JambSlotViewModel">
+												<Setter Property="Canvas.Left" Value="{Binding Left}"/>
+												<Setter Property="Canvas.Top" Value="{Binding Top}"/>
+											</Style>
+											<Style Selector="Button.jambArrow">
+												<Setter Property="Background" Value="Transparent"/>
+												<Setter Property="BorderThickness" Value="0"/>
+												<Setter Property="Padding" Value="0"/>
+												<Setter Property="Cursor" Value="Hand"/>
+											</Style>
+											<Style Selector="Button.jambArrow:pointerover /template/ ContentPresenter">
+												<Setter Property="Background" Value="Transparent"/>
+											</Style>
+											<Style Selector="Button.jambArrow:pointerover Path">
+												<Setter Property="Stroke" Value="#FF1B8F2E"/>
+												<Setter Property="StrokeThickness" Value="3.5"/>
+											</Style>
+										</ItemsControl.Styles>
+										<ItemsControl.ItemTemplate>
+											<DataTemplate x:DataType="vm:JambSlotViewModel">
+												<Button Classes="jambArrow" Width="24" Height="24"
+														Command="{Binding AddCommand}"
+														CommandParameter="{Binding Slot}"
+														ToolTip.Tip="Добавить добор"
+														RenderTransformOrigin="50%,50%">
+													<Button.RenderTransform>
 														<RotateTransform Angle="{Binding Angle}"/>
-														<TranslateTransform X="{Binding TextX}" Y="{Binding TextY}"/>
-													</TransformGroup>
-												</TextBlock.RenderTransform>
-											</TextBlock>
-										</Panel>
-									</DataTemplate>
-								</ItemsControl.ItemTemplate>
-							</ItemsControl>
+													</Button.RenderTransform>
+													<Path Data="M -9,0 L 9,0 M 2,-7 L 9,0 L 2,7"
+														  Stroke="#FF2EA043" StrokeThickness="2.5"
+														  StrokeLineCap="Round" StrokeJoin="Round"
+														  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+												</Button>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
+
+									<!-- Узлы (Nodes) -->
+									<ItemsControl ItemsSource="{Binding Nodes}" IsVisible="{Binding IsNodeVisible, Source={x:Static local:AppSettings.Instance}}">
+										<ItemsControl.ItemsPanel>
+											<ItemsPanelTemplate>
+												<Canvas />
+											</ItemsPanelTemplate>
+										</ItemsControl.ItemsPanel>
+										<ItemsControl.Styles>
+											<Style Selector="ItemsControl > ContentPresenter">
+												<Setter Property="Canvas.Left" Value="{ReflectionBinding X}"/>
+												<Setter Property="Canvas.Top" Value="{ReflectionBinding Y}"/>
+											</Style>
+										</ItemsControl.Styles>
+										<ItemsControl.ItemTemplate>
+											<DataTemplate x:DataType="vm:NodeViewModel">
+												<Ellipse Width="12" Height="12"
+														 Fill="{Binding FillColor}"
+														 Stroke="Black"
+														 StrokeThickness="1"
+														 Margin="-6,-6,0,0"
+														 PointerPressed="Node_PointerPressed"/>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
+
+									<!-- Размерные линии -->
+									<ItemsControl ItemsSource="{Binding Dimensions}"
+												  IsVisible="{ReflectionBinding IsDimensionsVisible, Source={x:Static local:AppSettings.Instance}}">
+										<ItemsControl.ItemsPanel>
+											<ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
+										</ItemsControl.ItemsPanel>
+										<ItemsControl.Styles>
+											<Style Selector="ItemsControl > ContentPresenter">
+												<Setter Property="Canvas.Left" Value="0"/>
+												<Setter Property="Canvas.Top" Value="0"/>
+											</Style>
+										</ItemsControl.Styles>
+										<ItemsControl.ItemTemplate>
+											<DataTemplate x:DataType="vm:DimensionViewModel">
+												<Panel>
+													<Path Data="{Binding Geometry}"
+														  Stroke="{Binding DisplayColor}"
+														  StrokeThickness="{Binding StrokeThickness}"
+														  Fill="Transparent"/>
+													<TextBlock Text="{Binding Text}"
+															   Foreground="Black"
+															   FontWeight="Bold"
+															   FontSize="10"
+															   RenderTransformOrigin="0.5,0.5"
+															   Margin="-10,-7,0,0">
+														<TextBlock.RenderTransform>
+															<TransformGroup>
+																<RotateTransform Angle="{Binding Angle}"/>
+																<TranslateTransform X="{Binding TextX}" Y="{Binding TextY}"/>
+															</TransformGroup>
+														</TextBlock.RenderTransform>
+													</TextBlock>
+												</Panel>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
 
 
-							<Canvas IsVisible="{Binding IsSelected}">
-								<Ellipse Width="16" Height="16"
-										 Canvas.Left="{Binding FrameDragHandle.X, FallbackValue=0}"
-										 Canvas.Top="{Binding FrameDragHandle.Y, FallbackValue=0}"
-										 Fill="LightBlue"
-										 Stroke="DarkBlue"
-										 StrokeThickness="2"
-										 Margin="-8,-8,0,0"
-										 Cursor="{Binding FrameDragHandle.DragCursor}"
-										 PointerPressed="DragHandle_PointerPressed"/>
-							</Canvas>
-						</Panel>
-					</DataTemplate>
-				</ItemsControl.ItemTemplate>
-			</ItemsControl>
-			<Path Data="{Binding GridGeometry}"
-				  Stroke="#DCDCDC"
-				  StrokeThickness="0.8"
-				  Fill="Transparent"
-				  IsHitTestVisible="False"
-				  IsVisible="{ReflectionBinding IsGridVisible, Source={x:Static local:AppSettings.Instance}}"
-				  RenderTransformOrigin="0.5,0.5">
-				<Path.RenderTransform>
-					<TransformGroup>
-						<ScaleTransform ScaleX="{ReflectionBinding Zoom, Source={x:Static local:AppSettings.Instance}}"
-										ScaleY="{ReflectionBinding Zoom, Source={x:Static local:AppSettings.Instance}}"/>
-						<TranslateTransform X="{ReflectionBinding PanX, Source={x:Static local:AppSettings.Instance}}"
-											Y="{ReflectionBinding PanY, Source={x:Static local:AppSettings.Instance}}"/>
-					</TransformGroup>
-				</Path.RenderTransform>
-			</Path>
-		</Grid>
+									<Canvas IsVisible="{Binding IsSelected}">
+										<Ellipse Width="16" Height="16"
+												 Canvas.Left="{Binding FrameDragHandle.X, FallbackValue=0}"
+												 Canvas.Top="{Binding FrameDragHandle.Y, FallbackValue=0}"
+												 Fill="LightBlue"
+												 Stroke="DarkBlue"
+												 StrokeThickness="2"
+												 Margin="-8,-8,0,0"
+												 Cursor="{Binding FrameDragHandle.DragCursor}"
+												 PointerPressed="DragHandle_PointerPressed"/>
+									</Canvas>
+								</Panel>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+					<Path Data="{Binding GridGeometry}"
+						  Stroke="#DCDCDC"
+						  StrokeThickness="0.8"
+						  Fill="Transparent"
+						  IsHitTestVisible="False"
+						  IsVisible="{ReflectionBinding IsGridVisible, Source={x:Static local:AppSettings.Instance}}"
+						  RenderTransformOrigin="0.5,0.5">
+						<Path.RenderTransform>
+							<TransformGroup>
+								<ScaleTransform ScaleX="{ReflectionBinding Zoom, Source={x:Static local:AppSettings.Instance}}"
+												ScaleY="{ReflectionBinding Zoom, Source={x:Static local:AppSettings.Instance}}"/>
+								<TranslateTransform X="{ReflectionBinding PanX, Source={x:Static local:AppSettings.Instance}}"
+													Y="{ReflectionBinding PanY, Source={x:Static local:AppSettings.Instance}}"/>
+							</TransformGroup>
+						</Path.RenderTransform>
+					</Path>
+				</Grid>
+			</LayoutTransformControl>
+		</ScrollViewer>
 		<ScrollViewer Grid.Row="2" Grid.Column="2" Margin="5">
 			<TabControl SelectedIndex="1">
 				<TabItem Header="Настройки">

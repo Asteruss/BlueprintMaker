@@ -2,6 +2,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using BlueprintMaker.Application.Commands;
 using BlueprintMaker.Core.Geometry;
 using BlueprintMaker.Domain.Models.Elements;
@@ -27,14 +29,27 @@ public partial class MainWindow : Window
     private CorePoint _dragStartFrameMin;
     private bool _panning;
     private AvaloniaPoint _panStartPos;
+
+    /// <summary>
+    /// Визуал, в системе координат которого идёт текущее действие (корневая Panel рамы).
+    /// Avalonia сама применяет к позиции все трансформации (Zoom, Pan, LayoutTransform),
+    /// поэтому координаты получаются сразу в единицах модели.
+    /// </summary>
+    private Visual? _dragSpace;
+
+    private bool _closeConfirmed;
+
     public MainWindow()
     {
         InitializeComponent();
         var mvm = new MainViewModel();
         DataContext = mvm;
         RegisterDialogs();
+
         this.PointerMoved += MainWindow_PointerMoved;
         this.PointerReleased += MainWindow_PointerReleased;
+
+        CanvasScroll.LayoutUpdated += (_, _) => ApplyViewCenter();
 
         DrawingCanvas.SizeChanged += (s, e) =>
         {
@@ -43,8 +58,19 @@ public partial class MainWindow : Window
 
         DrawingCanvas.PointerWheelChanged += (s, e) =>
         {
-            double delta = e.Delta.Y > 0 ? 0.1 : -0.1;
-            AppSettings.Instance.Zoom = MathCompat.Clamp(AppSettings.Instance.Zoom + delta, 0.2, 5.0);
+            // без Ctrl — обычная прокрутка ScrollViewer (Shift — по горизонтали)
+            if (e.KeyModifiers != KeyModifiers.Control) return;
+
+            var st = AppSettings.Instance;
+            double nz = MathCompat.Clamp(st.Zoom + (e.Delta.Y > 0 ? 0.1 : -0.1), 0.2, 5.0);
+
+            var world = e.GetPosition(DrawingCanvas);   // точка мира под курсором
+            var view = e.GetPosition(CanvasScroll);     // её положение во вьюпорте
+            st.Zoom = nz;
+
+            Dispatcher.UIThread.Post(() =>
+                CanvasScroll.Offset = new Vector(world.X * nz - view.X, world.Y * nz - view.Y),
+                DispatcherPriority.Loaded);
             e.Handled = true;
         };
 
@@ -57,7 +83,27 @@ public partial class MainWindow : Window
         };
     }
 
-    private bool _closeConfirmed;
+    /// <summary>Прокручивает вид к цели (окно / центр холста), когда layout готов.</summary>
+    private void ApplyViewCenter()
+    {
+        if (DataContext is not MainViewModel vm || !vm.NeedsViewCenter) return;
+
+        var vp = CanvasScroll.Viewport;
+        var ext = CanvasScroll.Extent;
+        if (vp.Width <= 0 || vp.Height <= 0 || ext.Width <= 0 || ext.Height <= 0) return; // layout ещё не готов
+
+        var (cx, cy) = vm.GetViewTarget();
+        double z = AppSettings.Instance.Zoom <= 0 ? 1.0 : AppSettings.Instance.Zoom;
+
+        double maxX = Math.Max(0, ext.Width - vp.Width);
+        double maxY = Math.Max(0, ext.Height - vp.Height);
+
+        CanvasScroll.Offset = new Vector(
+            MathCompat.Clamp(cx * z - vp.Width / 2, 0, maxX),
+            MathCompat.Clamp(cy * z - vp.Height / 2, 0, maxY));
+
+        vm.NeedsViewCenter = false;   // дальше пользователь прокручивает сам
+    }
 
     private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)
     {
@@ -78,12 +124,31 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// Находит корневую Panel шаблона рамы (ту, в чьей системе координат лежит модель).
+    /// Если не нашли — откатываемся на DrawingCanvas.
+    /// </summary>
+    private Visual FindFrameSpace(Visual? from)
+    {
+        Visual? found = null;
+        if (from != null)
+        {
+            foreach (var a in from.GetVisualAncestors())
+            {
+                // последняя найденная по пути вверх = самая внешняя Panel с DataContext = FrameViewModel
+                if (a is Panel p && p.DataContext is FrameViewModel) found = p;
+                if (ReferenceEquals(a, DrawingCanvas)) break;
+            }
+        }
+        return found ?? DrawingCanvas;
+    }
+
     private void Canvas_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (e.KeyModifiers == KeyModifiers.Control)
         {
             _panning = true;
-            _panStartPos = e.GetPosition(DrawingCanvas);
+            _panStartPos = e.GetPosition(CanvasScroll);
             e.Handled = true;
             return;
         }
@@ -98,6 +163,8 @@ public partial class MainWindow : Window
     {
         if (sender is Control ctrl && ctrl.DataContext is SelectableElement el)
         {
+            _dragSpace = FindFrameSpace(ctrl);
+
             if (el is WireframeLine && DataContext is MainViewModel mvm)
             {
                 var pos = GetFramePoint(e);
@@ -125,6 +192,8 @@ public partial class MainWindow : Window
     {
         if (sender is Control ctrl && ctrl.DataContext is NodeViewModel nodeVM)
         {
+            _dragSpace = FindFrameSpace(ctrl);
+
             _draggingNode = nodeVM;
             nodeVM.BeginDrag();
 
@@ -134,16 +203,32 @@ public partial class MainWindow : Window
         }
     }
 
+    private void DragHandle_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is Control ctrl && ctrl.DataContext is FrameViewModel fvm && fvm.FrameDragHandle != null)
+        {
+            _dragSpace = FindFrameSpace(ctrl);
+
+            _draggingHandle = fvm.FrameDragHandle;
+            _dragStartCanvasPos = GetFramePoint(e).ToAvaloniaPoint();
+            var bounds = _draggingHandle.SourceFrame.GetContour().BoundingBox;
+            _dragStartFrameMin = new CorePoint(bounds.MinX, bounds.MinY);
+            e.Handled = true;
+        }
+    }
+
     private void MainWindow_PointerMoved(object? sender, PointerEventArgs e)
     {
         if (_panning)
         {
-            var pos = e.GetPosition(DrawingCanvas);
-            AppSettings.Instance.PanX += pos.X - _panStartPos.X;
-            AppSettings.Instance.PanY += pos.Y - _panStartPos.Y;
+            var pos = e.GetPosition(CanvasScroll);
+            CanvasScroll.Offset = new Vector(
+                CanvasScroll.Offset.X - (pos.X - _panStartPos.X),
+                CanvasScroll.Offset.Y - (pos.Y - _panStartPos.Y));
             _panStartPos = pos;
             return;
         }
+
         if (_draggingHandle != null)
         {
             var pos = GetFramePoint(e).ToAvaloniaPoint();
@@ -198,6 +283,7 @@ public partial class MainWindow : Window
     private void MainWindow_PointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         _panning = false;
+
         if (_draggingHandle != null)
         {
             var finalBounds = _draggingHandle.SourceFrame.GetContour().BoundingBox;
@@ -239,39 +325,18 @@ public partial class MainWindow : Window
                 mvm2.SelectedFrame?.Refresh();
             }
         }
+
+        _dragSpace = null;
     }
 
-    private void DragHandle_PointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        if (sender is Control ctrl && ctrl.DataContext is FrameViewModel fvm && fvm.FrameDragHandle != null)
-        {
-            _draggingHandle = fvm.FrameDragHandle;
-            _dragStartCanvasPos = GetFramePoint(e).ToAvaloniaPoint();
-            var bounds = _draggingHandle.SourceFrame.GetContour().BoundingBox;
-            _dragStartFrameMin = new CorePoint(bounds.MinX, bounds.MinY);
-            e.Handled = true;
-        }
-    }
-
+    /// <summary>
+    /// Позиция указателя в координатах модели: берётся относительно панели рамы,
+    /// поэтому Zoom, Pan и прокрутка учитываются автоматически.
+    /// </summary>
     private CorePoint GetFramePoint(PointerEventArgs e)
     {
-        var pos = e.GetPosition(DrawingCanvas);
-        double zoom = AppSettings.Instance.Zoom;
-        if (zoom <= 0) zoom = 1.0;
-        double panX = AppSettings.Instance.PanX;
-        double panY = AppSettings.Instance.PanY;
-        return new CorePoint(Math.Ceiling((pos.X - panX) / zoom), Math.Ceiling((pos.Y - panY) / zoom));
-    }
-
-    private CorePoint GetFramePoint(PointerPressedEventArgs e)
-    {
-        var pos = e.GetPosition(DrawingCanvas);
-        double zoom = AppSettings.Instance.Zoom;
-        if (zoom <= 0) zoom = 1.0;
-        double panX = AppSettings.Instance.PanX;
-        double panY = AppSettings.Instance.PanY;
-        return new CorePoint(Math.Ceiling((pos.X - panX) / zoom), Math.Ceiling((pos.Y - panY) / zoom));
-
+        var p = e.GetPosition(_dragSpace ?? DrawingCanvas);
+        return new CorePoint(Math.Ceiling(p.X), Math.Ceiling(p.Y));
     }
 
     private void ResetZoom_Click(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
@@ -348,6 +413,4 @@ public partial class MainWindow : Window
             ctx.SetOutput(Unit.Default);
         });
     }
-
-
 }

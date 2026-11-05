@@ -8,7 +8,27 @@ namespace BlueprintMaker.Presentation.Avalonia.ViewModels;
 public partial class MainViewModel
 {
     private bool _firstCentered;
+    public event Action? CenterRequested;
+    /// <summary>Вид нужно прокрутить к окну. Сбрасывает MainWindow после прокрутки.</summary>
+    public bool NeedsViewCenter { get; set; } = true;
 
+    /// <summary>Куда телепортировать вид: центр окна, а если окна нет — центр холста.</summary>
+    public (double x, double y) GetViewTarget()
+    {
+        if (_document.Root != null)
+        {
+            var b = _document.Root.GetContour().BoundingBox;
+            return (b.MinX + b.Width / 2, b.MinY + b.Height / 2);
+        }
+        return (CanvasWidth / 2, CanvasHeight / 2);
+    }
+
+    public (double cx, double cy)? GetWindowCenter()
+    {
+        if (_document.Root == null) return null;
+        var b = _document.Root.GetContour().BoundingBox;
+        return (b.MinX + b.Width / 2, b.MinY + b.Height / 2);
+    }
     /// <summary>Вызывается из code-behind при SizeChanged холста.</summary>
     public void UpdateCanvasSize(double width, double height)
     {
@@ -35,6 +55,7 @@ public partial class MainViewModel
 
         if (Math.Abs(dx) > 0.001 || Math.Abs(dy) > 0.001)
             _document.Root.MoveBy(dx, dy);
+        NeedsViewCenter = true;
     }
 
     /// <summary>
@@ -45,35 +66,16 @@ public partial class MainViewModel
     {
         var settings = AppSettings.Instance;
         if (!settings.IsGridVisible || settings.GridSize <= 0 || CanvasWidth <= 0 || CanvasHeight <= 0)
-        {
-            GridGeometry = null;
-            return;
-        }
+        { GridGeometry = null; return; }
 
-        double gridSize = (double)settings.GridSize;
-        double zoom = settings.Zoom == 0 ? 1.0 : settings.Zoom;
-
-        // Видимая область в координатах рамы
-        double startX = Math.Floor((-settings.PanX / zoom) / gridSize) * gridSize;
-        double startY = Math.Floor((-settings.PanY / zoom) / gridSize) * gridSize;
-        double endX = Math.Ceiling(((CanvasWidth - settings.PanX) / zoom) / gridSize) * gridSize;
-        double endY = Math.Ceiling(((CanvasHeight - settings.PanY) / zoom) / gridSize) * gridSize;
-
+        double step = (double)settings.GridSize;
         var geometry = new StreamGeometry();
         using (var ctx = geometry.Open())
         {
-            for (double x = startX; x <= endX; x += gridSize)
-            {
-                ctx.BeginFigure(new AvaloniaPoint(x, startY), false);
-                ctx.LineTo(new AvaloniaPoint(x, endY));
-                ctx.EndFigure(false);
-            }
-            for (double y = startY; y <= endY; y += gridSize)
-            {
-                ctx.BeginFigure(new AvaloniaPoint(startX, y), false);
-                ctx.LineTo(new AvaloniaPoint(endX, y));
-                ctx.EndFigure(false);
-            }
+            for (double x = 0; x <= CanvasWidth; x += step)
+            { ctx.BeginFigure(new AvaloniaPoint(x, 0), false); ctx.LineTo(new AvaloniaPoint(x, CanvasHeight)); ctx.EndFigure(false); }
+            for (double y = 0; y <= CanvasHeight; y += step)
+            { ctx.BeginFigure(new AvaloniaPoint(0, y), false); ctx.LineTo(new AvaloniaPoint(CanvasWidth, y)); ctx.EndFigure(false); }
         }
         GridGeometry = geometry;
     }
